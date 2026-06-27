@@ -47,7 +47,8 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#0f0d1a;color:#e8
 .tb-btn:hover{background:#3d3570}
 .tb-btn.primary{background:#7F77DD;border-color:#7F77DD;color:#fff}
 .tb-btn.primary:hover{background:#9b96e8}
-.tb-btn.icon{width:34px;height:34px;padding:0;font-size:15px;display:flex;align-items:center;justify-content:center}
+.tb-btn.icon{width:34px;height:34px;padding:0;font-size:15px;display:flex;align-items:center;justify-content:center;position:relative}
+.tb-btn.icon:hover::after{content:attr(title);position:absolute;bottom:-28px;right:0;background:#1e1838;border:1px solid #3d3570;color:#e8e4ff;font-size:11px;padding:3px 8px;border-radius:5px;white-space:nowrap;z-index:100}
 #sync-status{font-size:11px;color:#8878c0;display:flex;align-items:center;gap:5px}
 #sync-dot{width:7px;height:7px;border-radius:50%;background:#8878c0}
 #sync-dot.ok{background:#1D9E75}
@@ -77,7 +78,7 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#0f0d1a;color:#e8
 .task-check.checked::after{content:"✓";color:#fff;font-size:12px}
 .task-text{flex:1;font-size:13px;line-height:1.6;color:#e8e4ff}
 .task-row.done .task-text{color:#4ade80;text-decoration:line-through;opacity:.7}
-.task-right{display:flex;align-items:center;gap:8px;flex-shrink:0;margin-top:2px}
+.task-right{display:flex;align-items:center;gap:8px;flex-shrink:0;margin-top:2px;flex-wrap:wrap;justify-content:flex-end}
 .diff-badge{font-size:11px;padding:3px 9px;border-radius:5px;font-weight:600;white-space:nowrap}
 .diff-e{background:#16432b;color:#4ade80}
 .diff-m{background:#2a2558;color:#a78bfa}
@@ -85,7 +86,8 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#0f0d1a;color:#e8
 .attach-btn{padding:3px 9px;background:transparent;border:1px solid #3d3570;border-radius:5px;color:#8878c0;cursor:pointer;font-size:12px;display:flex;align-items:center;gap:4px}
 .attach-btn:hover{border-color:#7F77DD;color:#b0a6e0}
 .attach-btn.has-file{border-color:#7F77DD;color:#a78bfa}
-.file-label{font-size:10px;color:#7F77DD;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file-link{font-size:10px;color:#7F77DD;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-decoration:none;border:1px solid #3d3570;border-radius:4px;padding:2px 6px;display:flex;align-items:center;gap:3px}
+.file-link:hover{border-color:#7F77DD;color:#b0a6e0}
 .section-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
 .section-title{font-size:18px;font-weight:700;color:#e8e4ff}
 .section-sub{font-size:12px;color:#b0a6e0;margin-top:3px}
@@ -102,6 +104,7 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#0f0d1a;color:#e8
 .toast{padding:10px 16px;background:#1e1838;color:#e8e4ff;border-left:3px solid #7F77DD;border:1px solid #3d3570;border-left-width:3px;border-radius:8px;font-size:13px;font-weight:500;animation:tIn .25s ease;max-width:280px}
 .toast.xp{border-left-color:#1D9E75}
 .toast.milestone{border-left-color:#f5c842}
+.toast.err{border-left-color:#ef4444}
 @keyframes tIn{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:none}}
 #modal-overlay{position:fixed;inset:0;background:rgba(5,3,15,.78);display:none;align-items:center;justify-content:center;z-index:9998}
 #modal-overlay.open{display:flex}
@@ -123,6 +126,8 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#0f0d1a;color:#e8
 #modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
 .btn-cancel{padding:8px 16px;border-radius:7px;border:1px solid #3d3570;background:transparent;color:#b0a6e0;cursor:pointer;font-size:13px}
 .btn-save{padding:8px 20px;border-radius:7px;border:none;background:#7F77DD;color:#fff;cursor:pointer;font-size:13px;font-weight:700}
+.uploading-overlay{position:fixed;inset:0;background:rgba(5,3,15,.6);display:flex;align-items:center;justify-content:center;z-index:9999;flex-direction:column;gap:12px}
+.uploading-overlay p{color:#e8e4ff;font-size:14px}
 </style>
 </head>
 <body>
@@ -177,6 +182,7 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#0f0d1a;color:#e8
         <div id="sync-status"><div id="sync-dot"></div><span id="sync-text">Connecting...</span></div>
         <button class="tb-btn icon" onclick="exportJSON()" title="Export for Claude">📤</button>
         <button class="tb-btn icon" onclick="openImport()" title="Import from Claude">📥</button>
+        <button class="tb-btn icon" onclick="setupToken()" title="GitHub Token Settings">🔑</button>
         <button class="tb-btn primary" onclick="openModal('goal')">+ Add Goal</button>
       </div>
     </div>
@@ -204,6 +210,12 @@ const SB_URL = 'https://gwguidsjzwuamhunjivz.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3Z3VpZHNqend1YW1odW5qaXZ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1MTQzNTcsImV4cCI6MjA5ODA5MDM1N30.eGE4RegxhvvJEaSwCHm1GCVs32IokmHKB286gMkKgsA';
 const HEADERS = {'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Prefer':'return=representation'};
 
+// ─── GitHub Config ─────────────────────────────────────────────────────────
+function getGHToken(){ return localStorage.getItem('gh_token') || ''; }
+const GH_OWNER = 'Subhendu2009';
+const GH_REPO  = 'Tasks-Probs-Solutions';
+const GH_API   = 'https://api.github.com';
+
 async function sb(method, table, body=null, query=''){
   const res = await fetch(`${SB_URL}/rest/v1/${table}${query}`,{method,headers:HEADERS,body:body?JSON.stringify(body):null});
   if(!res.ok){const e=await res.text();throw new Error(e);}
@@ -214,6 +226,44 @@ const dbGet = (table,q='') => sb('GET',table,null,q);
 const dbPost = (table,body) => sb('POST',table,body);
 const dbPatch = (table,body,q) => sb('PATCH',table,body,q);
 const dbDelete = (table,q) => sb('DELETE',table,null,q);
+
+// ─── GitHub file upload ────────────────────────────────────────────────────
+async function uploadToGitHub(filePath, fileContent, existingSha=null){
+  const url = `${GH_API}/repos/${GH_OWNER}/${GH_REPO}/contents/${filePath}`;
+  const body = {
+    message: `Add solution: ${filePath}`,
+    content: fileContent, // base64
+  };
+  if(existingSha) body.sha = existingSha;
+  const res = await fetch(url, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${getGHToken()}`,
+      'Content-Type': 'application/json',
+      'Accept': 'application/vnd.github+json'
+    },
+    body: JSON.stringify(body)
+  });
+  if(!res.ok){
+    const e = await res.json();
+    throw new Error(e.message || 'GitHub upload failed');
+  }
+  const data = await res.json();
+  return data.content.html_url;
+}
+
+async function getExistingFileSha(filePath){
+  const url = `${GH_API}/repos/${GH_OWNER}/${GH_REPO}/contents/${filePath}`;
+  const res = await fetch(url, {
+    headers: {
+      'Authorization': `Bearer ${getGHToken()}`,
+      'Accept': 'application/vnd.github+json'
+    }
+  });
+  if(res.status === 404) return null;
+  const data = await res.json();
+  return data.sha || null;
+}
 
 // ─── Config ────────────────────────────────────────────────────────────────
 const LXP=[0,200,500,900,1400,2000,2700,3500,4400,5400,6500,7700];
@@ -274,8 +324,6 @@ async function loadFromDB(){
       dbGet('tasks','?order=position'),
       dbGet('stats','?id=eq.1'),
     ]);
-
-    // Build nested structure
     goals = rawGoals.map(g=>({
       ...g,
       sub: rawSubs.filter(s=>s.goal_id===g.id).map(s=>({
@@ -283,17 +331,11 @@ async function loadFromDB(){
         tasks: rawTasks.filter(t=>t.subgoal_id===s.id)
       }))
     }));
-
     if(rawStats&&rawStats.length>0){
       stats=rawStats[0];
       if(stats.last_active&&stats.last_active<toYest())stats.streak=0;
     }
-
-    // Seed initial data if empty
-    if(goals.length===0){
-      await seedInitialData();
-    }
-
+    if(goals.length===0) await seedInitialData();
     setSyncStatus('ok','Synced');
     return true;
   }catch(e){
@@ -307,20 +349,15 @@ async function loadFromDB(){
 async function toggleTask(gid,sid,tid){
   const td=toDay();
   let diff='e',nowDone=false;
-
   goals=goals.map(g=>g.id!==gid?g:{...g,sub:g.sub.map(s=>s.id!==sid?s:{...s,tasks:s.tasks.map(k=>{
     if(k.id!==tid)return k;
     diff=k.diff;nowDone=!k.done;
     return{...k,done:nowDone,done_date:nowDone?td:null};
   })})});
-
   renderSidebar();renderContent();
-
-  // Save to DB
   try{
     setSyncStatus('syncing','Saving...');
     await dbPatch('tasks',{done:nowDone,done_date:nowDone?td:null},`?id=eq.${tid}`);
-
     if(nowDone){
       showToast('+'+XPV[diff]+' XP earned!','xp');
       let ns={...stats};
@@ -346,21 +383,57 @@ async function toggleTask(gid,sid,tid){
   }catch(e){setSyncStatus('err','Sync failed');}
 }
 
-// ─── File attach ───────────────────────────────────────────────────────────
+// ─── File attach with GitHub upload ───────────────────────────────────────
 function triggerAttach(gid,sid,tid){
   attachTarget={gid,sid,tid};
   const fi=document.getElementById('file-input');fi.value='';fi.onchange=onFileChange;fi.click();
 }
+
 async function onFileChange(e){
   const f=e.target.files[0];if(!f||!attachTarget)return;
   const{gid,sid,tid}=attachTarget;
-  goals=goals.map(g=>g.id!==gid?g:{...g,sub:g.sub.map(s=>s.id!==sid?s:{...s,tasks:s.tasks.map(k=>k.id!==tid?k:{...k,file_name:f.name})})});
-  renderContent();
+
+  // Find goal and subgoal names for the path
+  const goal=goals.find(g=>g.id===gid);
+  const sub=goal?.sub.find(s=>s.id===sid);
+  const goalName=(goal?.name||'misc').replace(/[^a-zA-Z0-9_-]/g,'_');
+  const subName=(sub?.name||'misc').replace(/[^a-zA-Z0-9_-]/g,'_');
+  const filePath=`solutions/${goalName}/${subName}/${f.name}`;
+
+  // Show uploading indicator
+  const overlay=document.createElement('div');
+  overlay.className='uploading-overlay';
+  overlay.innerHTML='<div class="spinner"></div><p>Uploading to GitHub...</p>';
+  document.body.appendChild(overlay);
+
   try{
-    await dbPatch('tasks',{file_name:f.name},`?id=eq.${tid}`);
-    showToast('📎 '+f.name+' attached','info');
+    // Read file as base64
+    const base64 = await new Promise((res,rej)=>{
+      const reader=new FileReader();
+      reader.onload=ev=>res(ev.target.result.split(',')[1]);
+      reader.onerror=()=>rej(new Error('Read failed'));
+      reader.readAsDataURL(f);
+    });
+
+    // Check if file already exists (to get sha for update)
+    const existingSha = await getExistingFileSha(filePath);
+
+    // Upload to GitHub
+    const githubUrl = await uploadToGitHub(filePath, base64, existingSha);
+
+    // Save URL to Supabase
+    goals=goals.map(g=>g.id!==gid?g:{...g,sub:g.sub.map(s=>s.id!==sid?s:{...s,tasks:s.tasks.map(k=>k.id!==tid?k:{...k,file_name:f.name,file_url:githubUrl})})});
+    await dbPatch('tasks',{file_name:f.name,file_url:githubUrl},`?id=eq.${tid}`);
+
+    renderContent();
+    showToast('📎 '+f.name+' uploaded to GitHub!','xp');
     setSyncStatus('ok','Synced');
-  }catch(e){setSyncStatus('err','Sync failed');}
+  }catch(err){
+    showToast('Upload failed: '+err.message,'err');
+    setSyncStatus('err','Upload failed');
+  }finally{
+    overlay.remove();
+  }
 }
 
 // ─── Add goal/sub/task ─────────────────────────────────────────────────────
@@ -380,7 +453,7 @@ async function addSubgoal(gid,name){
 async function addTask(gid,sid,text,diff){
   const goal=goals.find(g=>g.id===gid);if(!goal)return;
   const sub=goal.sub.find(s=>s.id===sid);if(!sub)return;
-  const t={id:uid(),subgoal_id:sid,goal_id:gid,text,diff,done:false,done_date:null,file_name:null,position:sub.tasks.length};
+  const t={id:uid(),subgoal_id:sid,goal_id:gid,text,diff,done:false,done_date:null,file_name:null,file_url:null,position:sub.tasks.length};
   sub.tasks.push(t);
   renderContent();
   try{await dbPost('tasks',t);setSyncStatus('ok','Synced');}catch(e){setSyncStatus('err','Sync failed');}
@@ -400,7 +473,7 @@ function exportJSON(){
     exported:new Date().toISOString(),student:"Subhendu",
     level:lv.lv,title:lv.title,totalXP:xp,streak:stats.streak,
     tasksCompleted:doneT,tasksTotal:allT,
-    goals:goals.map(g=>({name:g.name,subgoals:g.sub.map(s=>({name:s.name,done:s.tasks.filter(t=>t.done).length,total:s.tasks.length,tasks:s.tasks.map(t=>({id:t.id,text:t.text,difficulty:t.diff==='e'?'easy':t.diff==='h'?'hard':'medium',done:t.done,doneDate:t.done_date,file:t.file_name}))}))})),
+    goals:goals.map(g=>({name:g.name,subgoals:g.sub.map(s=>({name:s.name,done:s.tasks.filter(t=>t.done).length,total:s.tasks.length,tasks:s.tasks.map(t=>({id:t.id,text:t.text,difficulty:t.diff==='e'?'easy':t.diff==='h'?'hard':'medium',done:t.done,doneDate:t.done_date,file:t.file_name,fileUrl:t.file_url}))}))})),
     _raw:{goals,stats}
   };
   const blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
@@ -418,7 +491,6 @@ function openImport(){
       try{
         const d=JSON.parse(ev.target.result);
         if(d._raw&&d._raw.goals){
-          // Wipe and re-seed from imported data
           showToast('Importing...','info');
           await importRawData(d._raw);
           await loadFromDB();
@@ -433,11 +505,9 @@ function openImport(){
 }
 
 async function importRawData(raw){
-  // Delete existing
   await dbDelete('tasks','?id=neq.null');
   await dbDelete('subgoals','?id=neq.null');
   await dbDelete('goals','?id=neq.null');
-  // Re-insert
   for(const g of raw.goals){
     await dbPost('goals',{id:g.id,name:g.name,color:g.color,position:0});
     let sp=0;
@@ -445,12 +515,12 @@ async function importRawData(raw){
       await dbPost('subgoals',{id:s.id,goal_id:g.id,name:s.name,position:sp++});
       let tp=0;
       for(const t of s.tasks){
-        await dbPost('tasks',{id:t.id,subgoal_id:s.id,goal_id:g.id,text:t.text||t.text,diff:t.diff||'m',done:t.done,done_date:t.done_date||t.doneDate||null,file_name:t.file_name||t.file||null,position:tp++});
+        await dbPost('tasks',{id:t.id,subgoal_id:s.id,goal_id:g.id,text:t.text,diff:t.diff||'m',done:t.done,done_date:t.done_date||null,file_name:t.file_name||null,file_url:t.file_url||null,position:tp++});
       }
     }
   }
   if(raw.stats){
-    await dbPatch('stats',{streak:raw.stats.streak||0,last_active:raw.stats.lastActive||raw.stats.last_active||null,attendance:raw.stats.attendance||[],claimed:raw.stats.claimed||[],bonus_xp:raw.stats.bonusXP||raw.stats.bonus_xp||0},'?id=eq.1');
+    await dbPatch('stats',{streak:raw.stats.streak||0,last_active:raw.stats.last_active||null,attendance:raw.stats.attendance||[],claimed:raw.stats.claimed||[],bonus_xp:raw.stats.bonus_xp||0},'?id=eq.1');
   }
 }
 
@@ -546,13 +616,16 @@ function renderContent(){
     cs.tasks.forEach(t=>{
       const dc=t.diff==='e'?'diff-e':t.diff==='h'?'diff-h':'diff-m';
       const dl=t.diff==='e'?'Easy':t.diff==='h'?'Hard':'Medium';
+      const fileHtml = t.file_url
+        ? `<a class="file-link" href="${t.file_url}" target="_blank" title="${t.file_name}">📎 ${t.file_name}</a>`
+        : (t.file_name ? `<span class="file-link" title="${t.file_name}">📎 ${t.file_name}</span>` : '');
       h+=`<div class="task-row${t.done?' done':''}">
         <div class="task-check${t.done?' checked':''}" onclick="toggleTask('${cg.id}','${cs.id}','${t.id}')"></div>
         <span class="task-text">${t.text}</span>
         <div class="task-right">
-          ${t.file_name?`<span class="file-label" title="${t.file_name}">📎 ${t.file_name}</span>`:''}
+          ${fileHtml}
           <span class="diff-badge ${dc}">${dl} +${XPV[t.diff]}</span>
-          <button class="attach-btn${t.file_name?' has-file':''}" onclick="triggerAttach('${cg.id}','${cs.id}','${t.id}')">📎 ${t.file_name?'Change':'Attach'}</button>
+          <button class="attach-btn${t.file_name?' has-file':''}" onclick="triggerAttach('${cg.id}','${cs.id}','${t.id}')">📎 ${t.file_name?'Update':'Attach'}</button>
         </div></div>`;
     });
     c.innerHTML=h;return;
@@ -658,7 +731,6 @@ async function seedInitialData(){
       {name:"Deploying",tasks:[{text:"Can you deploy a static HTML page to Vercel and get a live public URL?",diff:"e"},{text:"Can you connect a GitHub repo to Vercel so every push auto-deploys?",diff:"m"},{text:"Can you build and deploy a portfolio page with your name, skills, and one project?",diff:"h"}]},
     ]},
   ];
-
   let gpos=0;
   for(const g of data){
     const gid=uid();
@@ -669,9 +741,23 @@ async function seedInitialData(){
       await dbPost('subgoals',{id:sid,goal_id:gid,name:s.name,position:spos++});
       let tpos=0;
       for(const t of s.tasks){
-        await dbPost('tasks',{id:uid(),subgoal_id:sid,goal_id:gid,text:t.text,diff:t.diff,done:false,done_date:null,file_name:null,position:tpos++});
+        await dbPost('tasks',{id:uid(),subgoal_id:sid,goal_id:gid,text:t.text,diff:t.diff,done:false,done_date:null,file_name:null,file_url:null,position:tpos++});
       }
     }
+  }
+}
+
+// ─── Token Setup ───────────────────────────────────────────────────────────
+function setupToken(){
+  const current = localStorage.getItem('gh_token') || '';
+  const token = prompt('Enter your GitHub Personal Access Token:\n(Stored only in your browser, never in code)', current);
+  if(token === null) return;
+  if(token.trim()){
+    localStorage.setItem('gh_token', token.trim());
+    showToast('GitHub token saved!', 'xp');
+  } else {
+    localStorage.removeItem('gh_token');
+    showToast('Token cleared', 'info');
   }
 }
 
