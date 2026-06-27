@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Subhendu — RPG Quest Tracker</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#0f0d1a;color:#e8e4ff;height:100vh;overflow:hidden;font-size:13px}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:#3d3570;border-radius:3px}::-webkit-scrollbar-track{background:transparent}
+#app{display:flex;height:100vh;overflow:hidden}
+#sidebar{width:308px;min-width:308px;background:#140f24;border-right:1px solid #2d2650;display:flex;flex-direction:column;overflow-y:auto}
+#main{flex:1;background:#1a1430;display:flex;flex-direction:column;min-width:0}
+.sb-section{padding:12px 14px;border-bottom:1px solid #2d2650}
+.sb-label{font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#8878c0;margin-bottom:8px}
+#lv-circle{width:52px;height:52px;border-radius:50%;background:#7F77DD;margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;border:2px solid #3d3570}
+#sb-name{color:#e8e4ff;font-size:15px;font-weight:700;text-align:center}
+#sb-title{color:#b0a6e0;font-size:12px;text-align:center;margin-top:2px}
+#sb-tasks{color:#8878c0;font-size:10px;text-align:center;margin-top:5px}
+#xp-labels{display:flex;justify-content:space-between;margin-bottom:5px;font-size:10px;color:#b0a6e0}
+#xp-track{height:6px;background:#2d2650;border-radius:3px;overflow:hidden}
+#xp-fill{height:100%;background:#7F77DD;border-radius:3px;transition:width .5s ease}
+#xp-next{font-size:9px;color:#8878c0;text-align:right;margin-top:4px}
+#week-row{display:flex;gap:3px}
+.wd{flex:1;text-align:center}
+.wd-lbl{font-size:9px;color:#8878c0;margin-bottom:3px}
+.wd-sq{height:20px;border-radius:3px;background:#2d2650;transition:background .3s}
+.wd-sq.active{background:#7F77DD}
+.wd-sq.today{border:1.5px solid #b0a6e0}
+#streak-num{color:#f5c842;font-size:24px;font-weight:700;line-height:1}
+.ms-item{display:flex;align-items:center;gap:7px;margin-bottom:6px;padding:5px 8px;border-radius:6px;background:#1e1838;border:1px solid #2d2650}
+.ms-item.ready{border-color:#7F77DD;background:#2a2558}
+.ms-item.claimed{opacity:.38}
+.ms-lbl{flex:1;font-size:10px;color:#e8e4ff}
+.ms-xp{font-size:9px;padding:2px 7px;border-radius:4px;background:#2d2650;color:#8878c0;font-weight:600}
+.ms-item.ready .ms-xp{background:#3b3000;color:#f5c842}
+.ms-item.claimed .ms-xp{background:#0a3d28;color:#4ade80}
+#txp-val{color:#7F77DD;font-size:26px;font-weight:700;line-height:1;margin-top:4px}
+#txp-total{color:#8878c0;font-size:10px;margin-top:4px}
+#topbar{padding:12px 20px;border-bottom:1px solid #2d2650;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+#breadcrumb{display:flex;align-items:center;gap:6px;font-size:13px}
+.crumb{color:#7F77DD;cursor:pointer}.crumb:hover{text-decoration:underline}
+.crumb-cur{color:#e8e4ff;font-weight:600}
+.crumb-sep{color:#8878c0}
+#topbar-right{display:flex;gap:8px;align-items:center}
+.tb-btn{padding:6px 13px;background:#2d2650;color:#e8e4ff;border:1px solid #3d3570;border-radius:7px;cursor:pointer;font-size:12px;font-weight:500}
+.tb-btn:hover{background:#3d3570}
+.tb-btn.primary{background:#7F77DD;border-color:#7F77DD;color:#fff}
+.tb-btn.primary:hover{background:#9b96e8}
+.tb-btn.icon{width:34px;height:34px;padding:0;font-size:15px;display:flex;align-items:center;justify-content:center}
+#sync-status{font-size:11px;color:#8878c0;display:flex;align-items:center;gap:5px}
+#sync-dot{width:7px;height:7px;border-radius:50%;background:#8878c0}
+#sync-dot.ok{background:#1D9E75}
+#sync-dot.err{background:#ef4444}
+#sync-dot.syncing{background:#f5c842;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+#content{flex:1;overflow-y:auto;padding:20px 24px}
+.goal-card{display:flex;align-items:center;gap:14px;padding:16px 18px;background:#1e1838;border:1px solid #2d2650;border-radius:8px;margin-bottom:10px;cursor:pointer;transition:background .15s}
+.goal-card:hover{background:#231e42}
+.gc-bar-wrap{flex:1;min-width:0}
+.gc-name{font-size:14px;font-weight:700;color:#e8e4ff;margin-bottom:6px}
+.gc-prog{height:5px;background:#2d2650;border-radius:3px;overflow:hidden}
+.gc-prog-fill{height:100%;border-radius:3px;transition:width .4s}
+.gc-meta{font-size:11px;color:#b0a6e0;white-space:nowrap}
+.gc-arr{color:#8878c0;font-size:14px}
+.badge-complete{font-size:10px;padding:2px 8px;border-radius:4px;background:#0a3d28;color:#4ade80;font-weight:600;white-space:nowrap}
+.sg-card{display:flex;align-items:center;gap:12px;padding:14px 16px;background:#1e1838;border:1px solid #2d2650;border-radius:8px;margin-bottom:8px;cursor:pointer;transition:background .15s}
+.sg-card:hover{background:#2a2558}
+.sg-name{flex:1;font-size:13px;font-weight:600;color:#e8e4ff}
+.sg-meta{font-size:11px;color:#b0a6e0}
+.sg-card.complete{border-color:#1a4a30;background:#0e2a1e}
+.sg-card.complete .sg-name{color:#4ade80;text-decoration:line-through}
+.task-row{display:flex;align-items:flex-start;gap:12px;padding:13px 16px;background:#1e1838;border:1px solid #2d2650;border-radius:8px;margin-bottom:8px;transition:background .2s}
+.task-row.done{background:#0e2a1e;border-color:#1a4a30}
+.task-check{width:20px;height:20px;min-width:20px;border-radius:5px;border:1.5px solid #3d3570;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;margin-top:1px;transition:all .15s;user-select:none}
+.task-check.checked{background:#1D9E75;border-color:#1D9E75}
+.task-check.checked::after{content:"✓";color:#fff;font-size:12px}
+.task-text{flex:1;font-size:13px;line-height:1.6;color:#e8e4ff}
+.task-row.done .task-text{color:#4ade80;text-decoration:line-through;opacity:.7}
+.task-right{display:flex;align-items:center;gap:8px;flex-shrink:0;margin-top:2px}
+.diff-badge{font-size:11px;padding:3px 9px;border-radius:5px;font-weight:600;white-space:nowrap}
+.diff-e{background:#16432b;color:#4ade80}
+.diff-m{background:#2a2558;color:#a78bfa}
+.diff-h{background:#3b1f07;color:#fb923c}
+.attach-btn{padding:3px 9px;background:transparent;border:1px solid #3d3570;border-radius:5px;color:#8878c0;cursor:pointer;font-size:12px;display:flex;align-items:center;gap:4px}
+.attach-btn:hover{border-color:#7F77DD;color:#b0a6e0}
+.attach-btn.has-file{border-color:#7F77DD;color:#a78bfa}
+.file-label{font-size:10px;color:#7F77DD;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.section-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.section-title{font-size:18px;font-weight:700;color:#e8e4ff}
+.section-sub{font-size:12px;color:#b0a6e0;margin-top:3px}
+.action-btn{padding:7px 14px;border:none;border-radius:7px;cursor:pointer;font-size:13px;font-weight:600;color:#fff}
+.add-row{display:flex;align-items:center;gap:10px;padding:14px 18px;background:transparent;border:1px dashed #3d3570;border-radius:8px;cursor:pointer;color:#8878c0;font-size:13px;margin-bottom:10px}
+.add-row:hover{background:#1e1838;color:#e8e4ff;border-color:#7F77DD}
+.empty{text-align:center;padding:40px 20px;color:#8878c0;font-size:13px}
+#loading-screen{position:fixed;inset:0;background:#0f0d1a;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:16px}
+#loading-screen h2{color:#e8e4ff;font-size:18px}
+#loading-screen p{color:#8878c0;font-size:13px}
+.spinner{width:36px;height:36px;border:3px solid #2d2650;border-top-color:#7F77DD;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#toast-wrap{position:fixed;top:14px;right:14px;display:flex;flex-direction:column;gap:8px;z-index:9999;pointer-events:none}
+.toast{padding:10px 16px;background:#1e1838;color:#e8e4ff;border-left:3px solid #7F77DD;border:1px solid #3d3570;border-left-width:3px;border-radius:8px;font-size:13px;font-weight:500;animation:tIn .25s ease;max-width:280px}
+.toast.xp{border-left-color:#1D9E75}
+.toast.milestone{border-left-color:#f5c842}
+@keyframes tIn{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:none}}
+#modal-overlay{position:fixed;inset:0;background:rgba(5,3,15,.78);display:none;align-items:center;justify-content:center;z-index:9998}
+#modal-overlay.open{display:flex}
+#modal-box{background:#1e1838;border-radius:12px;padding:24px;width:420px;max-width:92vw;border:1px solid #3d3570}
+#modal-title{font-size:15px;font-weight:700;color:#e8e4ff;margin-bottom:16px}
+.modal-label{font-size:11px;color:#b0a6e0;margin-bottom:5px;margin-top:12px}
+.modal-input{width:100%;padding:9px 11px;background:#12102a;border:1px solid #3d3570;border-radius:7px;font-size:14px;color:#e8e4ff;font-family:inherit}
+.modal-input:focus{outline:none;border-color:#7F77DD}
+.modal-textarea{width:100%;height:80px;padding:9px 11px;background:#12102a;border:1px solid #3d3570;border-radius:7px;font-size:13px;color:#e8e4ff;font-family:inherit;resize:vertical}
+.modal-textarea:focus{outline:none;border-color:#7F77DD}
+#diff-row{display:flex;gap:8px;margin-top:6px}
+.diff-opt{flex:1;padding:8px 4px;border-radius:7px;border:2px solid #2d2650;background:#12102a;color:#8878c0;cursor:pointer;font-size:12px;font-weight:500;text-align:center}
+.diff-opt.sel-e{border-color:#4ade80;background:#16432b;color:#4ade80}
+.diff-opt.sel-m{border-color:#a78bfa;background:#2a2558;color:#a78bfa}
+.diff-opt.sel-h{border-color:#fb923c;background:#3b1f07;color:#fb923c}
+#color-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.color-swatch{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2px solid transparent}
+.color-swatch.sel{border-color:#fff}
+#modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
+.btn-cancel{padding:8px 16px;border-radius:7px;border:1px solid #3d3570;background:transparent;color:#b0a6e0;cursor:pointer;font-size:13px}
+.btn-save{padding:8px 20px;border-radius:7px;border:none;background:#7F77DD;color:#fff;cursor:pointer;font-size:13px;font-weight:700}
+</style>
+</head>
+<body>
+
+<div id="loading-screen">
+  <div class="spinner"></div>
+  <h2>Loading Quest Board...</h2>
+  <p>Connecting to Supabase</p>
+</div>
+
+<div id="app" style="display:none">
+  <div id="sidebar">
+    <div class="sb-section" style="text-align:center;padding:18px 14px 14px">
+      <div id="lv-circle">Lv1</div>
+      <div id="sb-name">Subhendu</div>
+      <div id="sb-title">Newcomer</div>
+      <div id="sb-tasks">0 / 0 tasks done</div>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label">XP Progress</div>
+      <div id="xp-labels"><span id="xp-cur">0</span><span id="xp-max">200</span></div>
+      <div id="xp-track"><div id="xp-fill" style="width:0%"></div></div>
+      <div id="xp-next">200 XP to Lv2</div>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label">This Week</div>
+      <div id="week-row"></div>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label">Streak</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:22px">🔥</span>
+        <div><div id="streak-num">0</div><div style="color:#b0a6e0;font-size:11px">days</div></div>
+      </div>
+      <div id="streak-hint" style="color:#8878c0;font-size:10px;margin-top:5px"></div>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label">Streak Milestones</div>
+      <div id="milestone-list"></div>
+    </div>
+    <div class="sb-section" style="margin-top:auto;border-bottom:none">
+      <div class="sb-label">Today's XP Earned</div>
+      <div id="txp-val">+0 XP</div>
+      <div id="txp-total">Total: 0 XP</div>
+    </div>
+  </div>
+
+  <div id="main">
+    <div id="topbar">
+      <div id="breadcrumb"></div>
+      <div id="topbar-right">
+        <div id="sync-status"><div id="sync-dot"></div><span id="sync-text">Connecting...</span></div>
+        <button class="tb-btn icon" onclick="exportJSON()" title="Export for Claude">📤</button>
+        <button class="tb-btn icon" onclick="openImport()" title="Import from Claude">📥</button>
+        <button class="tb-btn primary" onclick="openModal('goal')">+ Add Goal</button>
+      </div>
+    </div>
+    <div id="content"></div>
+  </div>
+</div>
+
+<div id="toast-wrap"></div>
+<div id="modal-overlay" onclick="handleOverlayClick(event)">
+  <div id="modal-box">
+    <div id="modal-title"></div>
+    <div id="modal-body"></div>
+    <div id="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="submitModal()">Add</button>
+    </div>
+  </div>
+</div>
+<input type="file" id="file-input" style="display:none">
+<input type="file" id="import-input" style="display:none" accept=".json">
+
+<script>
+// ─── Supabase Config ───────────────────────────────────────────────────────
+const SB_URL = 'https://gwguidsjzwuamhunjivz.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3Z3VpZHNqend1YW1odW5qaXZ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1MTQzNTcsImV4cCI6MjA5ODA5MDM1N30.eGE4RegxhvvJEaSwCHm1GCVs32IokmHKB286gMkKgsA';
+const HEADERS = {'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Prefer':'return=representation'};
+
+async function sb(method, table, body=null, query=''){
+  const res = await fetch(`${SB_URL}/rest/v1/${table}${query}`,{method,headers:HEADERS,body:body?JSON.stringify(body):null});
+  if(!res.ok){const e=await res.text();throw new Error(e);}
+  const txt = await res.text();
+  return txt ? JSON.parse(txt) : null;
+}
+const dbGet = (table,q='') => sb('GET',table,null,q);
+const dbPost = (table,body) => sb('POST',table,body);
+const dbPatch = (table,body,q) => sb('PATCH',table,body,q);
+const dbDelete = (table,q) => sb('DELETE',table,null,q);
+
+// ─── Config ────────────────────────────────────────────────────────────────
+const LXP=[0,200,500,900,1400,2000,2700,3500,4400,5400,6500,7700];
+const TITLES=["Newcomer","Beginner","Learner","Apprentice","Junior Dev","Developer","Sr. Developer","Builder","Engineer","Tech Lead","Master Dev","Legend"];
+const XPV={e:15,m:30,h:60};
+const MILESTONES=[{days:7,xp:100},{days:14,xp:200},{days:30,xp:500}];
+const COLORS=["#7F77DD","#1D9E75","#D85A30","#BA7517","#185FA5","#993556","#534AB7","#0F6E56","#639922","#D4537E"];
+const WL=["M","T","W","T","F","S","S"];
+
+// ─── State ─────────────────────────────────────────────────────────────────
+let goals=[], stats={streak:0,last_active:null,attendance:[],claimed:[],bonus_xp:0};
+let view={goalId:null,subId:null};
+let modalState={};
+let attachTarget=null;
+let _id=0;
+function uid(){return 'id'+(Date.now())+(++_id);}
+function toDay(){return new Date().toISOString().slice(0,10);}
+function toYest(){const d=new Date();d.setDate(d.getDate()-1);return d.toISOString().slice(0,10);}
+function weekDates(){
+  const now=new Date(),dow=now.getDay(),mon=new Date(now);
+  mon.setDate(now.getDate()-(dow===0?6:dow-1));
+  return Array.from({length:7},(_,i)=>{const d=new Date(mon);d.setDate(mon.getDate()+i);return d.toISOString().slice(0,10);});
+}
+
+// ─── XP / Level ────────────────────────────────────────────────────────────
+function totalXP(){
+  let t=stats.bonus_xp||0;
+  goals.forEach(g=>g.sub.forEach(s=>s.tasks.forEach(k=>{if(k.done)t+=XPV[k.diff]||0;})));
+  return t;
+}
+function todayXP(){
+  const td=toDay();let t=0;
+  goals.forEach(g=>g.sub.forEach(s=>s.tasks.forEach(k=>{if(k.done&&k.done_date===td)t+=XPV[k.diff]||0;})));
+  return t;
+}
+function lvInfo(xp){
+  let lv=1;
+  for(let i=1;i<LXP.length;i++){if(xp>=LXP[i])lv=i+1;else break;}
+  lv=Math.min(lv,LXP.length);
+  const cur=LXP[lv-1]||0,nxt=LXP[lv]||cur+1500;
+  return{lv,title:TITLES[Math.min(lv-1,TITLES.length-1)],pct:nxt>cur?Math.min(100,Math.round((xp-cur)/(nxt-cur)*100)):100,toNext:Math.max(0,nxt-xp),nxt};
+}
+
+// ─── Sync status ───────────────────────────────────────────────────────────
+function setSyncStatus(state,text){
+  const dot=document.getElementById('sync-dot');
+  const txt=document.getElementById('sync-text');
+  dot.className=state; txt.textContent=text;
+}
+
+// ─── Load from Supabase ────────────────────────────────────────────────────
+async function loadFromDB(){
+  setSyncStatus('syncing','Loading...');
+  try{
+    const [rawGoals,rawSubs,rawTasks,rawStats] = await Promise.all([
+      dbGet('goals','?order=position'),
+      dbGet('subgoals','?order=position'),
+      dbGet('tasks','?order=position'),
+      dbGet('stats','?id=eq.1'),
+    ]);
+
+    // Build nested structure
+    goals = rawGoals.map(g=>({
+      ...g,
+      sub: rawSubs.filter(s=>s.goal_id===g.id).map(s=>({
+        ...s,
+        tasks: rawTasks.filter(t=>t.subgoal_id===s.id)
+      }))
+    }));
+
+    if(rawStats&&rawStats.length>0){
+      stats=rawStats[0];
+      if(stats.last_active&&stats.last_active<toYest())stats.streak=0;
+    }
+
+    // Seed initial data if empty
+    if(goals.length===0){
+      await seedInitialData();
+    }
+
+    setSyncStatus('ok','Synced');
+    return true;
+  }catch(e){
+    setSyncStatus('err','Offline');
+    showToast('Could not connect to database','err');
+    return false;
+  }
+}
+
+// ─── Toggle task ───────────────────────────────────────────────────────────
+async function toggleTask(gid,sid,tid){
+  const td=toDay();
+  let diff='e',nowDone=false;
+
+  goals=goals.map(g=>g.id!==gid?g:{...g,sub:g.sub.map(s=>s.id!==sid?s:{...s,tasks:s.tasks.map(k=>{
+    if(k.id!==tid)return k;
+    diff=k.diff;nowDone=!k.done;
+    return{...k,done:nowDone,done_date:nowDone?td:null};
+  })})});
+
+  renderSidebar();renderContent();
+
+  // Save to DB
+  try{
+    setSyncStatus('syncing','Saving...');
+    await dbPatch('tasks',{done:nowDone,done_date:nowDone?td:null},`?id=eq.${tid}`);
+
+    if(nowDone){
+      showToast('+'+XPV[diff]+' XP earned!','xp');
+      let ns={...stats};
+      if(!(ns.attendance||[]).includes(td)){
+        ns.attendance=[...(ns.attendance||[]),td];
+        if(ns.last_active===toYest())ns.streak=(ns.streak||0)+1;
+        else if(ns.last_active!==td)ns.streak=1;
+        ns.last_active=td;
+        await dbPatch('stats',{streak:ns.streak,last_active:ns.last_active,attendance:ns.attendance},'?id=eq.1');
+        MILESTONES.forEach(async(m,i)=>{
+          if(ns.streak>=m.days&&!(ns.claimed||[]).includes(i)){
+            ns.bonus_xp=(ns.bonus_xp||0)+m.xp;
+            ns.claimed=[...(ns.claimed||[]),i];
+            await dbPatch('stats',{bonus_xp:ns.bonus_xp,claimed:ns.claimed},'?id=eq.1');
+            setTimeout(()=>showToast('🔥 '+m.days+'-day streak! +'+m.xp+' XP!','milestone'),600);
+          }
+        });
+        stats=ns;
+      }
+    }
+    setSyncStatus('ok','Synced');
+    renderSidebar();
+  }catch(e){setSyncStatus('err','Sync failed');}
+}
+
+// ─── File attach ───────────────────────────────────────────────────────────
+function triggerAttach(gid,sid,tid){
+  attachTarget={gid,sid,tid};
+  const fi=document.getElementById('file-input');fi.value='';fi.onchange=onFileChange;fi.click();
+}
+async function onFileChange(e){
+  const f=e.target.files[0];if(!f||!attachTarget)return;
+  const{gid,sid,tid}=attachTarget;
+  goals=goals.map(g=>g.id!==gid?g:{...g,sub:g.sub.map(s=>s.id!==sid?s:{...s,tasks:s.tasks.map(k=>k.id!==tid?k:{...k,file_name:f.name})})});
+  renderContent();
+  try{
+    await dbPatch('tasks',{file_name:f.name},`?id=eq.${tid}`);
+    showToast('📎 '+f.name+' attached','info');
+    setSyncStatus('ok','Synced');
+  }catch(e){setSyncStatus('err','Sync failed');}
+}
+
+// ─── Add goal/sub/task ─────────────────────────────────────────────────────
+async function addGoal(name,color){
+  const g={id:uid(),name,color,position:goals.length};
+  goals.push({...g,sub:[]});
+  renderContent();
+  try{await dbPost('goals',g);setSyncStatus('ok','Synced');}catch(e){setSyncStatus('err','Sync failed');}
+}
+async function addSubgoal(gid,name){
+  const goal=goals.find(g=>g.id===gid);if(!goal)return;
+  const s={id:uid(),goal_id:gid,name,position:goal.sub.length};
+  goal.sub.push({...s,tasks:[]});
+  renderContent();
+  try{await dbPost('subgoals',s);setSyncStatus('ok','Synced');}catch(e){setSyncStatus('err','Sync failed');}
+}
+async function addTask(gid,sid,text,diff){
+  const goal=goals.find(g=>g.id===gid);if(!goal)return;
+  const sub=goal.sub.find(s=>s.id===sid);if(!sub)return;
+  const t={id:uid(),subgoal_id:sid,goal_id:gid,text,diff,done:false,done_date:null,file_name:null,position:sub.tasks.length};
+  sub.tasks.push(t);
+  renderContent();
+  try{await dbPost('tasks',t);setSyncStatus('ok','Synced');}catch(e){setSyncStatus('err','Sync failed');}
+}
+
+// ─── Navigation ────────────────────────────────────────────────────────────
+function navHome(){view={goalId:null,subId:null};render();}
+function navGoal(gid){view={goalId:gid,subId:null};render();}
+function navSub(gid,sid){view={goalId:gid,subId:sid};render();}
+
+// ─── Export / Import ───────────────────────────────────────────────────────
+function exportJSON(){
+  const xp=totalXP();const lv=lvInfo(xp);
+  const allT=goals.reduce((a,g)=>a+g.sub.reduce((b,s)=>b+s.tasks.length,0),0);
+  const doneT=goals.reduce((a,g)=>a+g.sub.reduce((b,s)=>b+s.tasks.filter(k=>k.done).length,0),0);
+  const out={
+    exported:new Date().toISOString(),student:"Subhendu",
+    level:lv.lv,title:lv.title,totalXP:xp,streak:stats.streak,
+    tasksCompleted:doneT,tasksTotal:allT,
+    goals:goals.map(g=>({name:g.name,subgoals:g.sub.map(s=>({name:s.name,done:s.tasks.filter(t=>t.done).length,total:s.tasks.length,tasks:s.tasks.map(t=>({id:t.id,text:t.text,difficulty:t.diff==='e'?'easy':t.diff==='h'?'hard':'medium',done:t.done,doneDate:t.done_date,file:t.file_name}))}))})),
+    _raw:{goals,stats}
+  };
+  const blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='subhendu_progress_'+toDay()+'.json';a.click();
+  showToast('Exported! Upload to any Claude chat.','info');
+}
+
+function openImport(){
+  const ii=document.getElementById('import-input');ii.value='';
+  ii.onchange=async e=>{
+    const f=e.target.files[0];if(!f)return;
+    const reader=new FileReader();
+    reader.onload=async ev=>{
+      try{
+        const d=JSON.parse(ev.target.result);
+        if(d._raw&&d._raw.goals){
+          // Wipe and re-seed from imported data
+          showToast('Importing...','info');
+          await importRawData(d._raw);
+          await loadFromDB();
+          render();
+          showToast('Import complete!','info');
+        }
+      }catch(ex){showToast('Could not read file','err');}
+    };
+    reader.readAsText(f);
+  };
+  ii.click();
+}
+
+async function importRawData(raw){
+  // Delete existing
+  await dbDelete('tasks','?id=neq.null');
+  await dbDelete('subgoals','?id=neq.null');
+  await dbDelete('goals','?id=neq.null');
+  // Re-insert
+  for(const g of raw.goals){
+    await dbPost('goals',{id:g.id,name:g.name,color:g.color,position:0});
+    let sp=0;
+    for(const s of g.sub){
+      await dbPost('subgoals',{id:s.id,goal_id:g.id,name:s.name,position:sp++});
+      let tp=0;
+      for(const t of s.tasks){
+        await dbPost('tasks',{id:t.id,subgoal_id:s.id,goal_id:g.id,text:t.text||t.text,diff:t.diff||'m',done:t.done,done_date:t.done_date||t.doneDate||null,file_name:t.file_name||t.file||null,position:tp++});
+      }
+    }
+  }
+  if(raw.stats){
+    await dbPatch('stats',{streak:raw.stats.streak||0,last_active:raw.stats.lastActive||raw.stats.last_active||null,attendance:raw.stats.attendance||[],claimed:raw.stats.claimed||[],bonus_xp:raw.stats.bonusXP||raw.stats.bonus_xp||0},'?id=eq.1');
+  }
+}
+
+// ─── Modal ─────────────────────────────────────────────────────────────────
+function openModal(type,gid,sid){
+  modalState={type,gid:gid||null,sid:sid||null,diff:'m',color:COLORS[0]};
+  document.getElementById('modal-title').textContent=type==='goal'?'Add New Goal':type==='sub'?'Add Sub-goal':'Add Task';
+  const body=document.getElementById('modal-body');
+  if(type==='task'){
+    body.innerHTML=`<div class="modal-label">Task question or challenge</div>
+    <textarea class="modal-textarea" id="m-text" placeholder="e.g. Can you write a function that...?"></textarea>
+    <div class="modal-label">Difficulty</div>
+    <div id="diff-row">
+      <button class="diff-opt" onclick="setDiff('e',this)">Easy<br><span style="font-size:10px">+15 XP</span></button>
+      <button class="diff-opt sel-m" onclick="setDiff('m',this)">Medium<br><span style="font-size:10px">+30 XP</span></button>
+      <button class="diff-opt" onclick="setDiff('h',this)">Hard<br><span style="font-size:10px">+60 XP</span></button>
+    </div>`;
+  }else{
+    body.innerHTML=`<div class="modal-label">${type==='goal'?'Goal name':'Sub-goal name'}</div>
+    <input class="modal-input" id="m-name" placeholder="${type==='goal'?'e.g. Python, Algorithms...':'e.g. Recursion, Loops...'}" onkeydown="if(event.key==='Enter')submitModal()">
+    ${type==='goal'?`<div class="modal-label">Color</div><div id="color-row">${COLORS.map(c=>`<div class="color-swatch${c===COLORS[0]?' sel':''}" style="background:${c}" onclick="setColor('${c}',this)"></div>`).join('')}</div>`:''}`;
+  }
+  document.getElementById('modal-overlay').classList.add('open');
+  setTimeout(()=>{const i=document.getElementById('m-name')||document.getElementById('m-text');if(i)i.focus();},50);
+}
+function setDiff(d,el){modalState.diff=d;document.querySelectorAll('.diff-opt').forEach(b=>b.className='diff-opt');el.className='diff-opt sel-'+d;}
+function setColor(c,el){modalState.color=c;document.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('sel'));el.classList.add('sel');}
+function closeModal(){document.getElementById('modal-overlay').classList.remove('open');}
+function handleOverlayClick(e){if(e.target===document.getElementById('modal-overlay'))closeModal();}
+async function submitModal(){
+  const{type,gid,sid}=modalState;
+  if(type==='goal'){const n=(document.getElementById('m-name')||{}).value?.trim();if(!n)return;await addGoal(n,modalState.color);}
+  else if(type==='sub'){const n=(document.getElementById('m-name')||{}).value?.trim();if(!n)return;await addSubgoal(gid,n);}
+  else{const t=(document.getElementById('m-text')||{}).value?.trim();if(!t)return;await addTask(gid,sid,t,modalState.diff);}
+  closeModal();
+  showToast({goal:'Goal added!',sub:'Sub-goal added!',task:'Task added!'}[type],'info');
+}
+
+// ─── Toast ─────────────────────────────────────────────────────────────────
+function showToast(msg,type){
+  const w=document.getElementById('toast-wrap');
+  const el=document.createElement('div');
+  el.className='toast '+(type||'');el.textContent=msg;
+  w.appendChild(el);setTimeout(()=>el.remove(),3200);
+}
+
+// ─── Render Sidebar ────────────────────────────────────────────────────────
+function renderSidebar(){
+  const xp=totalXP(),txp=todayXP(),lv=lvInfo(xp);
+  const allT=goals.reduce((a,g)=>a+g.sub.reduce((b,s)=>b+s.tasks.length,0),0);
+  const doneT=goals.reduce((a,g)=>a+g.sub.reduce((b,s)=>b+s.tasks.filter(k=>k.done).length,0),0);
+  document.getElementById('lv-circle').textContent='Lv'+lv.lv;
+  document.getElementById('sb-title').textContent=lv.title;
+  document.getElementById('sb-tasks').textContent=doneT+' / '+allT+' tasks done';
+  document.getElementById('xp-cur').textContent=xp;
+  document.getElementById('xp-max').textContent=lv.nxt;
+  document.getElementById('xp-fill').style.width=lv.pct+'%';
+  document.getElementById('xp-next').textContent=lv.toNext+' XP to Lv'+(lv.lv+1);
+  document.getElementById('txp-val').textContent='+'+txp+' XP';
+  document.getElementById('txp-total').textContent='Total: '+xp+' XP';
+  document.getElementById('streak-num').textContent=stats.streak||0;
+  const nm=MILESTONES.find((m,i)=>(stats.streak||0)<m.days&&!(stats.claimed||[]).includes(i));
+  document.getElementById('streak-hint').textContent=nm?'Next bonus at '+nm.days+' days':'All milestones reached 🏆';
+  const week=weekDates(),att=stats.attendance||[],td=toDay();
+  document.getElementById('week-row').innerHTML=week.map((d,i)=>`<div class="wd"><div class="wd-lbl">${WL[i]}</div><div class="wd-sq${att.includes(d)?' active':''}${d===td?' today':''}"></div></div>`).join('');
+  document.getElementById('milestone-list').innerHTML=MILESTONES.map((m,i)=>{
+    const cl=(stats.claimed||[]).includes(i),ready=(stats.streak||0)>=m.days&&!cl;
+    return`<div class="ms-item${ready?' ready':''}${cl?' claimed':''}"><span>${cl?'✓':'○'}</span><span class="ms-lbl">${m.days}-day streak</span><span class="ms-xp">+${m.xp} XP</span></div>`;
+  }).join('');
+}
+
+// ─── Render Breadcrumb ─────────────────────────────────────────────────────
+function renderBreadcrumb(){
+  const cg=goals.find(g=>g.id===view.goalId)||null;
+  const cs=cg?.sub.find(s=>s.id===view.subId)||null;
+  let h=`<span class="${cg?'crumb':'crumb-cur'}" onclick="${cg?'navHome()':''}">Goals</span>`;
+  if(cg)h+=`<span class="crumb-sep">›</span><span class="${cs?'crumb':'crumb-cur'}" onclick="${cs?`navGoal('${cg.id}')`:''}">${cg.name}</span>`;
+  if(cs)h+=`<span class="crumb-sep">›</span><span class="crumb-cur">${cs.name}</span>`;
+  document.getElementById('breadcrumb').innerHTML=h;
+}
+
+// ─── Render Content ────────────────────────────────────────────────────────
+function renderContent(){
+  const c=document.getElementById('content');
+  const cg=goals.find(g=>g.id===view.goalId)||null;
+  const cs=cg?.sub.find(s=>s.id===view.subId)||null;
+
+  if(cg&&cs){
+    const done=cs.tasks.filter(t=>t.done).length;
+    let h=`<div class="section-row"><div><div class="section-title">${cs.name}</div><div class="section-sub">${done}/${cs.tasks.length} tasks complete</div></div>
+    <button class="action-btn" style="background:#7F77DD" onclick="openModal('task','${cg.id}','${cs.id}')">+ Add Task</button></div>`;
+    if(!cs.tasks.length)h+=`<div class="empty">No tasks yet — click Add Task above</div>`;
+    cs.tasks.forEach(t=>{
+      const dc=t.diff==='e'?'diff-e':t.diff==='h'?'diff-h':'diff-m';
+      const dl=t.diff==='e'?'Easy':t.diff==='h'?'Hard':'Medium';
+      h+=`<div class="task-row${t.done?' done':''}">
+        <div class="task-check${t.done?' checked':''}" onclick="toggleTask('${cg.id}','${cs.id}','${t.id}')"></div>
+        <span class="task-text">${t.text}</span>
+        <div class="task-right">
+          ${t.file_name?`<span class="file-label" title="${t.file_name}">📎 ${t.file_name}</span>`:''}
+          <span class="diff-badge ${dc}">${dl} +${XPV[t.diff]}</span>
+          <button class="attach-btn${t.file_name?' has-file':''}" onclick="triggerAttach('${cg.id}','${cs.id}','${t.id}')">📎 ${t.file_name?'Change':'Attach'}</button>
+        </div></div>`;
+    });
+    c.innerHTML=h;return;
+  }
+
+  if(cg){
+    const gd=cg.sub.reduce((a,s)=>a+s.tasks.filter(t=>t.done).length,0);
+    const gt=cg.sub.reduce((a,s)=>a+s.tasks.length,0);
+    let h=`<div class="section-row"><div><div style="display:flex;align-items:center;gap:8px"><div style="width:10px;height:10px;border-radius:50%;background:${cg.color}"></div><div class="section-title">${cg.name}</div></div>
+    <div class="section-sub">${gd}/${gt} tasks complete</div></div>
+    <button class="action-btn" style="background:${cg.color}" onclick="openModal('sub','${cg.id}')">+ Add Sub-goal</button></div>`;
+    if(!cg.sub.length)h+=`<div class="empty">No sub-goals yet — click Add Sub-goal above</div>`;
+    cg.sub.forEach(s=>{
+      const sd=s.tasks.filter(t=>t.done).length,comp=s.tasks.length>0&&sd===s.tasks.length;
+      h+=`<div class="sg-card${comp?' complete':''}" onclick="navSub('${cg.id}','${s.id}')">
+        <span style="font-size:16px">${comp?'✓':'📂'}</span>
+        <span class="sg-name">${s.name}</span>
+        ${comp?'<span class="badge-complete">Complete</span>':''}
+        <span class="sg-meta">${sd}/${s.tasks.length} tasks</span>
+        <span style="color:#8878c0;font-size:14px">›</span></div>`;
+    });
+    c.innerHTML=h;return;
+  }
+
+  const allT=goals.reduce((a,g)=>a+g.sub.reduce((b,s)=>b+s.tasks.length,0),0);
+  const doneT=goals.reduce((a,g)=>a+g.sub.reduce((b,s)=>b+s.tasks.filter(k=>k.done).length,0),0);
+  let h=`<div class="section-row"><div><div class="section-title">All Goals</div><div class="section-sub">${doneT} of ${allT} tasks complete</div></div></div>`;
+  goals.forEach(g=>{
+    const gd=g.sub.reduce((a,s)=>a+s.tasks.filter(t=>t.done).length,0);
+    const gt=g.sub.reduce((a,s)=>a+s.tasks.length,0);
+    const comp=gt>0&&gd===gt,pct=gt?Math.round(gd/gt*100):0;
+    h+=`<div class="goal-card" onclick="navGoal('${g.id}')">
+      <span style="font-size:18px">📁</span>
+      <div class="gc-bar-wrap"><div class="gc-name">${g.name}</div>
+      <div class="gc-prog"><div class="gc-prog-fill" style="width:${pct}%;background:${g.color}"></div></div></div>
+      ${comp?'<span class="badge-complete">Complete</span>':''}
+      <span class="gc-meta">${gd}/${gt} tasks</span>
+      <span class="gc-arr">›</span></div>`;
+  });
+  h+=`<div class="add-row" onclick="openModal('goal')">+ Add new goal</div>`;
+  c.innerHTML=h;
+}
+
+function render(){renderSidebar();renderBreadcrumb();renderContent();}
+
+// ─── Seed initial data ─────────────────────────────────────────────────────
+async function seedInitialData(){
+  showToast('First time setup — loading your syllabus...','info');
+  const data=[
+    {name:"C Programming",color:"#7F77DD",sub:[
+      {name:"Basics",tasks:[{text:"Can you write a Hello World program and explain what every single line does?",diff:"e"},{text:"What is the difference between a compiler and interpreter — which one does C use?",diff:"e"},{text:"What are format specifiers — difference between %d, %f, %c, and %s in printf?",diff:"e"}]},
+      {name:"Variables & Data Types",tasks:[{text:"What are int, float, char, and double — when would you use each one?",diff:"e"},{text:"Can you write a program that reads two numbers and prints sum, difference, product, quotient?",diff:"m"},{text:"What happens when you store 1000 in a char variable — demonstrate and explain why?",diff:"m"}]},
+      {name:"Control Flow",tasks:[{text:"Can you write an if-else program that checks if a number is positive, negative, or zero?",diff:"e"},{text:"Can you write a for loop that prints the multiplication table for any number entered?",diff:"m"},{text:"What is the difference between a while loop and do-while — when does each check condition?",diff:"m"},{text:"Can you write a switch statement that prints the day name for numbers 1 through 7?",diff:"m"}]},
+      {name:"Functions",tasks:[{text:"What is a function — why use them instead of writing everything in main?",diff:"e"},{text:"Can you write a function that takes two numbers and returns the larger one?",diff:"e"},{text:"What is the difference between passing by value and passing by reference in C?",diff:"m"},{text:"What is recursion — can you write a recursive function to calculate factorial of n?",diff:"h"}]},
+      {name:"Arrays",tasks:[{text:"What is an array — how do you declare one, assign values, and access each element?",diff:"e"},{text:"Can you write a program that finds the largest and smallest element in an array?",diff:"m"},{text:"Can you reverse an array in-place without using a second array?",diff:"m"},{text:"What is a 2D array — can you create a 3×3 matrix and print it in grid format?",diff:"m"}]},
+      {name:"Pointers",tasks:[{text:"What is a pointer — what does & do and what does * do?",diff:"m"},{text:"Can you write a function that swaps two numbers using pointers?",diff:"m"},{text:"What is the relationship between arrays and pointers in C?",diff:"h"},{text:"Can you use malloc and free to dynamically allocate an array without a memory leak?",diff:"h"}]},
+      {name:"Strings",tasks:[{text:"How are strings stored in C — why is there a null terminator at the end?",diff:"m"},{text:"Can you find the length of a string without using strlen?",diff:"m"},{text:"Can you reverse a string in-place by swapping characters?",diff:"m"},{text:"Can you check if a given string is a palindrome?",diff:"h"}]},
+      {name:"File Handling",tasks:[{text:"What is a FILE pointer — how do you open, write to, and close a file in C?",diff:"m"},{text:"Can you write a program that reads a text file line by line and prints each line?",diff:"m"},{text:"Can you build a student record system that saves and loads data from a file?",diff:"h"}]},
+      {name:"Dynamic Memory",tasks:[{text:"What does malloc do — can you allocate, assign, print, then free an integer?",diff:"m"},{text:"What is a memory leak — can you write one, then fix it?",diff:"m"},{text:"Can you implement a dynamic stack with push, pop, and peek using malloc?",diff:"h"}]},
+    ]},
+    {name:"Linux",color:"#1D9E75",sub:[
+      {name:"Terminal Basics",tasks:[{text:"Can you open a terminal and explain what each part of the prompt is telling you?",diff:"e"},{text:"What do pwd, ls, cd, and mkdir do — can you use all four to navigate and create a folder?",diff:"e"},{text:"How do you cancel a running command and clear the terminal screen?",diff:"e"}]},
+      {name:"File System",tasks:[{text:"What is the Linux file system hierarchy — what are /, /home, /etc, /var, and /usr for?",diff:"e"},{text:"Can you create a file, rename it with mv, copy with cp, and delete the original with rm?",diff:"e"},{text:"What is the difference between a relative and absolute path?",diff:"m"},{text:"Can you use find to locate all .txt files inside your home directory?",diff:"m"}]},
+      {name:"Permissions",tasks:[{text:"What do the letters rwxrwxrwx mean when you run ls -l on a file?",diff:"m"},{text:"Can you create a .sh script, make it executable with chmod +x, and run it?",diff:"m"},{text:"What is the difference between owner, group, and others in Linux permissions?",diff:"m"}]},
+      {name:"Users & Groups",tasks:[{text:"What is the difference between a regular user and root?",diff:"e"},{text:"What does sudo do and why is it safer than logging in as root?",diff:"e"},{text:"How do you create a new user with useradd and set their password with passwd?",diff:"m"}]},
+      {name:"Package Management",tasks:[{text:"What is apt — how do you install, update, and remove a package?",diff:"e"},{text:"What is the difference between apt update and apt upgrade?",diff:"e"},{text:"Can you install htop, use it to monitor your system, then uninstall it?",diff:"e"}]},
+      {name:"Processes",tasks:[{text:"What is a process — how do you list running processes using ps aux or htop?",diff:"m"},{text:"How do you kill a process by name or by PID?",diff:"m"},{text:"What does running a command with & do — how do you bring it back with fg?",diff:"m"}]},
+      {name:"Shell Scripting",tasks:[{text:"Can you write a shell script that prints Hello World and the current date?",diff:"e"},{text:"Can you write a script that loops from 1 to 5 and prints Iteration N each time?",diff:"m"},{text:"Can you write a script that checks if a file exists and prints a message either way?",diff:"m"},{text:"Can you write a backup script that copies a folder with a timestamp in the name?",diff:"h"}]},
+      {name:"SSH",tasks:[{text:"What is SSH — what problem does it solve compared to telnet?",diff:"e"},{text:"How do you generate an SSH key pair and why is key auth safer than passwords?",diff:"m"},{text:"Can you SSH into localhost and run a command without an interactive session?",diff:"h"}]},
+      {name:"Networking Commands",tasks:[{text:"Can you use ping and curl to test connectivity and fetch the HTML of example.com?",diff:"m"},{text:"How do you find your local IP address and default gateway from the terminal?",diff:"m"},{text:"What does ss -tulnp show — can you list all ports your machine is listening on?",diff:"h"}]},
+    ]},
+    {name:"Git & GitHub",color:"#D85A30",sub:[
+      {name:"Setup",tasks:[{text:"Can you install Git, configure username and email globally, and verify the config?",diff:"e"},{text:"What is the difference between Git (the tool) and GitHub (the platform)?",diff:"e"}]},
+      {name:"Basic Commands",tasks:[{text:"Can you create a folder, run git init, and explain what .git contains?",diff:"e"},{text:"What do git add and git commit do — what is the staging area?",diff:"e"},{text:"What does git status show — difference between untracked, modified, and staged?",diff:"e"},{text:"How do you view commit history with git log?",diff:"e"},{text:"How do you undo the last commit without losing your file changes?",diff:"m"}]},
+      {name:"Branching",tasks:[{text:"What is a branch — why work on one instead of committing to main directly?",diff:"m"},{text:"Can you create a feature branch, make two commits, then switch back to main?",diff:"m"},{text:"How do you merge a branch into main and then delete it?",diff:"m"}]},
+      {name:"Merging & Conflicts",tasks:[{text:"Can you deliberately create a merge conflict and explain what the markers mean?",diff:"h"},{text:"What is git rebase — how is it different from git merge?",diff:"h"}]},
+      {name:"Remote Repos",tasks:[{text:"Can you create a GitHub repo and connect your local project with git remote add?",diff:"m"},{text:"What is the difference between git push, git pull, and git fetch?",diff:"m"},{text:"What is a .gitignore file — can you create one that ignores build files?",diff:"e"}]},
+      {name:"Pull Requests",tasks:[{text:"What is a Pull Request — what collaborative workflow does it enable?",diff:"m"},{text:"Can you fork a repo, make an improvement, and open a PR to the original?",diff:"h"}]},
+      {name:"GitHub Pages",tasks:[{text:"Can you deploy a simple HTML page to GitHub Pages and get a live URL?",diff:"m"},{text:"Can you connect a GitHub repo to Vercel so every push auto-deploys?",diff:"m"}]},
+    ]},
+    {name:"Data Structures",color:"#BA7517",sub:[
+      {name:"Arrays",tasks:[{text:"What is the time complexity of access, search, insert, delete for an array?",diff:"m"},{text:"Can you implement binary search and explain why it is O(log n)?",diff:"m"},{text:"Can you find the second largest element without sorting the array?",diff:"m"}]},
+      {name:"Linked Lists",tasks:[{text:"What is a linked list — how is memory layout different from an array?",diff:"m"},{text:"Can you implement a singly linked list with insert at head, tail, and print?",diff:"m"},{text:"Can you reverse a linked list in-place and explain the pointer logic?",diff:"h"},{text:"Can you detect a cycle using Floyd's two-pointer algorithm?",diff:"h"}]},
+      {name:"Stack & Queue",tasks:[{text:"What is a stack — can you implement one and use it to check bracket balance?",diff:"m"},{text:"What is a queue — can you implement a circular queue to avoid wasted space?",diff:"h"}]},
+      {name:"Trees",tasks:[{text:"What is a binary tree — what are root, leaf, height, depth, and parent?",diff:"m"},{text:"Can you implement a Binary Search Tree with insert and search?",diff:"m"},{text:"Can you write inorder, preorder, and postorder traversal?",diff:"h"}]},
+      {name:"Graphs",tasks:[{text:"What is a graph — how do you represent one using an adjacency list?",diff:"m"},{text:"Can you implement BFS from a given starting node?",diff:"h"},{text:"Can you implement DFS using recursion?",diff:"h"}]},
+      {name:"Sorting",tasks:[{text:"Can you implement bubble sort and trace through one complete pass?",diff:"m"},{text:"Can you implement merge sort and explain why it is O(n log n)?",diff:"h"},{text:"What is the difference between a stable and unstable sorting algorithm?",diff:"m"}]},
+      {name:"Hashing",tasks:[{text:"What is a hash function — can you write one that maps strings to array indices?",diff:"m"},{text:"What is a hash collision — can you implement separate chaining?",diff:"h"}]},
+    ]},
+    {name:"Networking",color:"#185FA5",sub:[
+      {name:"OSI Model",tasks:[{text:"Can you name all 7 OSI layers and give a one-line description for each?",diff:"m"},{text:"Which layers are involved when you load a webpage — and what does each do?",diff:"m"},{text:"What is the difference between the OSI model and the TCP/IP model?",diff:"m"}]},
+      {name:"IP & Subnetting",tasks:[{text:"What is an IP address — what is the difference between IPv4 and IPv6?",diff:"e"},{text:"What is a subnet mask — what does /24 mean in 192.168.1.0/24?",diff:"m"},{text:"Can you split 192.168.1.0/24 into 4 subnets and list each network address?",diff:"h"}]},
+      {name:"TCP & UDP",tasks:[{text:"What is the core difference between TCP and UDP — when would you choose each?",diff:"m"},{text:"What is the TCP three-way handshake — why is it needed before data flows?",diff:"m"}]},
+      {name:"DNS & HTTP",tasks:[{text:"What happens step-by-step when you type google.com into your browser?",diff:"m"},{text:"What is the difference between HTTP and HTTPS — what does TLS protect?",diff:"m"},{text:"What are HTTP methods — what do GET, POST, PUT, DELETE, and PATCH do?",diff:"e"},{text:"Can you use curl to make a GET request and inspect the response headers?",diff:"m"}]},
+      {name:"Firewalls & Routing",tasks:[{text:"What is a firewall — difference between stateful and stateless?",diff:"m"},{text:"Can you use ufw on Linux to allow SSH and block all other incoming traffic?",diff:"h"},{text:"What is NAT — why do home routers use it?",diff:"m"}]},
+    ]},
+    {name:"Web Development",color:"#993556",sub:[
+      {name:"HTML Basics",tasks:[{text:"Can you create an HTML page with a heading, image, paragraph, and a link?",diff:"e"},{text:"What is the difference between block and inline elements — give 3 examples of each?",diff:"e"},{text:"Can you build an HTML table that shows a student's marks in 4 subjects?",diff:"e"}]},
+      {name:"CSS Basics",tasks:[{text:"What are the three ways to add CSS to HTML — which is best practice and why?",diff:"e"},{text:"What is the CSS box model — can you show margin, border, padding, and content?",diff:"m"},{text:"Can you style a card with rounded corners, a border, and a hover effect?",diff:"m"}]},
+      {name:"Flexbox & Grid",tasks:[{text:"Can you center a div both horizontally and vertically using Flexbox?",diff:"m"},{text:"Can you create a 3-column layout that collapses to 1 column on mobile using Grid?",diff:"m"},{text:"What is the difference between justify-content and align-items in Flexbox?",diff:"m"}]},
+      {name:"JavaScript Basics",tasks:[{text:"What is the difference between var, let, and const — when to use each?",diff:"e"},{text:"Can you write a function that filters an array and returns only even numbers?",diff:"m"},{text:"What is a callback — can you write one that fires after 2 seconds with setTimeout?",diff:"m"}]},
+      {name:"DOM Manipulation",tasks:[{text:"What is the DOM — how do you select an element and change its text with JS?",diff:"e"},{text:"Can you build a to-do list where pressing Enter adds a new item?",diff:"m"},{text:"Can you add a delete button to each item that removes it when clicked?",diff:"m"}]},
+      {name:"Deploying",tasks:[{text:"Can you deploy a static HTML page to Vercel and get a live public URL?",diff:"e"},{text:"Can you connect a GitHub repo to Vercel so every push auto-deploys?",diff:"m"},{text:"Can you build and deploy a portfolio page with your name, skills, and one project?",diff:"h"}]},
+    ]},
+  ];
+
+  let gpos=0;
+  for(const g of data){
+    const gid=uid();
+    await dbPost('goals',{id:gid,name:g.name,color:g.color,position:gpos++});
+    let spos=0;
+    for(const s of g.sub){
+      const sid=uid();
+      await dbPost('subgoals',{id:sid,goal_id:gid,name:s.name,position:spos++});
+      let tpos=0;
+      for(const t of s.tasks){
+        await dbPost('tasks',{id:uid(),subgoal_id:sid,goal_id:gid,text:t.text,diff:t.diff,done:false,done_date:null,file_name:null,position:tpos++});
+      }
+    }
+  }
+}
+
+// ─── Boot ──────────────────────────────────────────────────────────────────
+(async()=>{
+  const ok=await loadFromDB();
+  document.getElementById('loading-screen').style.display='none';
+  document.getElementById('app').style.display='flex';
+  if(ok)render();
+})();
+</script>
+</body>
+</html>
