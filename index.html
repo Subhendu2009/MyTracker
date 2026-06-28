@@ -128,6 +128,12 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#0f0d1a;color:#e8
 .btn-save{padding:8px 20px;border-radius:7px;border:none;background:#7F77DD;color:#fff;cursor:pointer;font-size:13px;font-weight:700}
 .uploading-overlay{position:fixed;inset:0;background:rgba(5,3,15,.6);display:flex;align-items:center;justify-content:center;z-index:9999;flex-direction:column;gap:12px}
 .uploading-overlay p{color:#e8e4ff;font-size:14px}
+.del-btn{width:26px;height:26px;min-width:26px;border-radius:5px;border:1px solid transparent;background:transparent;color:#8878c0;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;opacity:0;transition:all .15s}
+*:hover>.del-btn{opacity:1}
+.del-btn:hover{background:#3b1515;border-color:#ef4444;color:#ef4444}
+.edit-btn{width:26px;height:26px;min-width:26px;border-radius:5px;border:1px solid transparent;background:transparent;color:#8878c0;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;opacity:0;transition:all .15s}
+*:hover>.edit-btn{opacity:1}
+.edit-btn:hover{background:#1a2a4a;border-color:#7F77DD;color:#7F77DD}
 </style>
 </head>
 <body>
@@ -179,6 +185,7 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#0f0d1a;color:#e8
     <div id="topbar">
       <div id="breadcrumb"></div>
       <div id="topbar-right">
+        <input id="search-input" type="text" placeholder="Search tasks..." oninput="onSearch(this.value)" style="padding:6px 12px;background:#12102a;border:1px solid #3d3570;border-radius:7px;font-size:12px;color:#e8e4ff;width:160px;font-family:inherit;outline:none" onfocus="this.style.borderColor='#7F77DD'" onblur="this.style.borderColor='#3d3570'">
         <div id="sync-status"><div id="sync-dot"></div><span id="sync-text">Connecting...</span></div>
         <button class="tb-btn icon" onclick="exportJSON()" title="Export for Claude">📤</button>
         <button class="tb-btn icon" onclick="openImport()" title="Import from Claude">📥</button>
@@ -265,6 +272,9 @@ async function getExistingFileSha(filePath){
   return data.sha || null;
 }
 
+// ─── Sanitize (XSS protection) ────────────────────────────────────────────
+function esc(s){if(!s)return '';const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+
 // ─── Config ────────────────────────────────────────────────────────────────
 const LXP=[0,200,500,900,1400,2000,2700,3500,4400,5400,6500,7700];
 const TITLES=["Newcomer","Beginner","Learner","Apprentice","Junior Dev","Developer","Sr. Developer","Builder","Engineer","Tech Lead","Master Dev","Legend"];
@@ -278,6 +288,7 @@ let goals=[], stats={streak:0,last_active:null,attendance:[],claimed:[],bonus_xp
 let view={goalId:null,subId:null};
 let modalState={};
 let attachTarget=null;
+let searchQuery='';
 let _id=0;
 function uid(){return 'id'+(Date.now())+(++_id);}
 function toDay(){return new Date().toISOString().slice(0,10);}
@@ -359,7 +370,8 @@ async function toggleTask(gid,sid,tid){
     setSyncStatus('syncing','Saving...');
     await dbPatch('tasks',{done:nowDone,done_date:nowDone?td:null},`?id=eq.${tid}`);
     if(nowDone){
-      showToast('+'+XPV[diff]+' XP earned!','xp');
+      const xpGained=XPV[diff]||0;
+      showToast('+'+xpGained+' XP earned!','xp',()=>undoToggle(gid,sid,tid,diff,true));
       let ns={...stats};
       if(!(ns.attendance||[]).includes(td)){
         ns.attendance=[...(ns.attendance||[]),td];
@@ -377,10 +389,27 @@ async function toggleTask(gid,sid,tid){
         });
         stats=ns;
       }
+    }else{
+      showToast('Task uncompleted','info',()=>undoToggle(gid,sid,tid,diff,false));
     }
     setSyncStatus('ok','Synced');
     renderSidebar();
   }catch(e){setSyncStatus('err','Sync failed');}
+}
+async function undoToggle(gid,sid,tid,diff,wasMarkedDone){
+  const td=toDay();
+  // Reverse: if was marked done, unmark it; if was unmarked, mark it
+  const reverseDone=!wasMarkedDone;
+  goals=goals.map(g=>g.id!==gid?g:{...g,sub:g.sub.map(s=>s.id!==sid?s:{...s,tasks:s.tasks.map(k=>{
+    if(k.id!==tid)return k;
+    return{...k,done:reverseDone,done_date:reverseDone?td:null};
+  })})});
+  try{
+    await dbPatch('tasks',{done:reverseDone,done_date:reverseDone?td:null},`?id=eq.${tid}`);
+    setSyncStatus('ok','Synced');
+  }catch(e){setSyncStatus('err','Sync failed');}
+  render();renderSidebar();
+  showToast('Undone!','info');
 }
 
 // ─── File attach with GitHub upload ───────────────────────────────────────
@@ -459,10 +488,77 @@ async function addTask(gid,sid,text,diff){
   try{await dbPost('tasks',t);setSyncStatus('ok','Synced');}catch(e){setSyncStatus('err','Sync failed');}
 }
 
+// ─── Delete goal/sub/task ─────────────────────────────────────────────────
+function confirmDelete(type,gid,sid,tid){
+  const labels={goal:'this goal and all its sub-goals & tasks',sub:'this sub-goal and all its tasks',task:'this task'};
+  if(!confirm('Delete '+labels[type]+'? This cannot be undone.'))return;
+  if(type==='task')deleteTask(gid,sid,tid);
+  else if(type==='sub')deleteSubgoal(gid,sid);
+  else deleteGoal(gid);
+}
+async function deleteGoal(gid){
+  const goal=goals.find(g=>g.id===gid);if(!goal)return;
+  // delete tasks, subgoals, goal from DB
+  for(const s of goal.sub){for(const t of s.tasks){try{await dbDelete('tasks','?id=eq.'+t.id);}catch(e){}}
+    try{await dbDelete('subgoals','?id=eq.'+s.id);}catch(e){}}
+  try{await dbDelete('goals','?id=eq.'+gid);}catch(e){}
+  goals=goals.filter(g=>g.id!==gid);
+  if(view.goalId===gid)navHome();else render();
+  showToast('Goal deleted','err');
+}
+async function deleteSubgoal(gid,sid){
+  const goal=goals.find(g=>g.id===gid);if(!goal)return;
+  const sub=goal.sub.find(s=>s.id===sid);if(!sub)return;
+  for(const t of sub.tasks){try{await dbDelete('tasks','?id=eq.'+t.id);}catch(e){}}
+  try{await dbDelete('subgoals','?id=eq.'+sid);}catch(e){}
+  goal.sub=goal.sub.filter(s=>s.id!==sid);
+  if(view.subId===sid)navGoal(gid);else render();
+  showToast('Sub-goal deleted','err');
+}
+async function deleteTask(gid,sid,tid){
+  const goal=goals.find(g=>g.id===gid);if(!goal)return;
+  const sub=goal.sub.find(s=>s.id===sid);if(!sub)return;
+  try{await dbDelete('tasks','?id=eq.'+tid);}catch(e){}
+  sub.tasks=sub.tasks.filter(t=>t.id!==tid);
+  render();renderSidebar();
+  showToast('Task deleted','err');
+}
+
+// ─── Edit goal/sub/task ─────────────────────────────────────────────────
+async function editGoal(gid,name,color){
+  goals=goals.map(g=>g.id!==gid?g:{...g,name,color});
+  try{await dbPatch('goals',{name,color},`?id=eq.${gid}`);setSyncStatus('ok','Synced');}catch(e){setSyncStatus('err','Sync failed');}
+  render();
+}
+async function editSubgoal(sid,gid,name){
+  const goal=goals.find(g=>g.id===gid);if(!goal)return;
+  goal.sub=goal.sub.map(s=>s.id!==sid?{...s}:{...s,name});
+  try{await dbPatch('subgoals',{name},`?id=eq.${sid}`);setSyncStatus('ok','Synced');}catch(e){setSyncStatus('err','Sync failed');}
+  render();
+}
+async function editTask(tid,gid,sid,text,diff){
+  const goal=goals.find(g=>g.id===gid);if(!goal)return;
+  const sub=goal.sub.find(s=>s.id===sid);if(!sub)return;
+  sub.tasks=sub.tasks.map(t=>t.id!==tid?{...t}:{...t,text,diff});
+  try{await dbPatch('tasks',{text,diff},`?id=eq.${tid}`);setSyncStatus('ok','Synced');}catch(e){setSyncStatus('err','Sync failed');}
+  render();renderSidebar();
+}
+
+// ─── Search ────────────────────────────────────────────────────────────
+function onSearch(q){
+  searchQuery=q.trim().toLowerCase();
+  renderContent();
+}
+function matchSearch(text){
+  if(!searchQuery)return true;
+  return text.toLowerCase().includes(searchQuery);
+}
+
 // ─── Navigation ────────────────────────────────────────────────────────────
-function navHome(){view={goalId:null,subId:null};render();}
-function navGoal(gid){view={goalId:gid,subId:null};render();}
-function navSub(gid,sid){view={goalId:gid,subId:sid};render();}
+function navHome(){view={goalId:null,subId:null};clearSearch();render();}
+function navGoal(gid){view={goalId:gid,subId:null};clearSearch();render();}
+function navSub(gid,sid){view={goalId:gid,subId:sid};clearSearch();render();}
+function clearSearch(){searchQuery='';const si=document.getElementById('search-input');if(si)si.value='';}
 
 // ─── Export / Import ───────────────────────────────────────────────────────
 function exportJSON(){
@@ -491,6 +587,7 @@ function openImport(){
       try{
         const d=JSON.parse(ev.target.result);
         if(d._raw&&d._raw.goals){
+          if(!confirm('⚠️ This will DELETE all your current goals, sub-goals, and tasks, then replace them with the imported data.\n\nAre you sure you want to continue?'))return;
           showToast('Importing...','info');
           await importRawData(d._raw);
           await loadFromDB();
@@ -525,46 +622,77 @@ async function importRawData(raw){
 }
 
 // ─── Modal ─────────────────────────────────────────────────────────────────
-function openModal(type,gid,sid){
-  modalState={type,gid:gid||null,sid:sid||null,diff:'m',color:COLORS[0]};
-  document.getElementById('modal-title').textContent=type==='goal'?'Add New Goal':type==='sub'?'Add Sub-goal':'Add Task';
+function openModal(type,gid,sid,editId){
+  modalState={type,gid:gid||null,sid:sid||null,diff:'m',color:COLORS[0],editId:editId||null};
+  const isEdit=!!editId;
+  // Find existing data for edit mode
+  let existing=null;
+  if(isEdit){
+    if(type==='task'){const g=goals.find(g=>g.id===gid);const s=g?.sub.find(s=>s.id===sid);existing=s?.tasks.find(t=>t.id===editId);}
+    else if(type==='sub'){const g=goals.find(g=>g.id===gid);existing=g?.sub.find(s=>s.id===editId);}
+    else{existing=goals.find(g=>g.id===editId);}
+  }
+  document.getElementById('modal-title').textContent=(isEdit?'Edit ':'Add ')+(type==='goal'?'Goal':type==='sub'?'Sub-goal':'Task');
+  document.querySelector('.btn-save').textContent=isEdit?'Save':'Add';
   const body=document.getElementById('modal-body');
   if(type==='task'){
+    const preDiff=existing?existing.diff:'m';
+    const preText=existing?existing.text.replace(/"/g,'&quot;'):'';
+    modalState.diff=preDiff;
     body.innerHTML=`<div class="modal-label">Task question or challenge</div>
-    <textarea class="modal-textarea" id="m-text" placeholder="e.g. Can you write a function that...?"></textarea>
+    <textarea class="modal-textarea" id="m-text" placeholder="e.g. Can you write a function that...?">${preText}</textarea>
     <div class="modal-label">Difficulty</div>
     <div id="diff-row">
-      <button class="diff-opt" onclick="setDiff('e',this)">Easy<br><span style="font-size:10px">+15 XP</span></button>
-      <button class="diff-opt sel-m" onclick="setDiff('m',this)">Medium<br><span style="font-size:10px">+30 XP</span></button>
-      <button class="diff-opt" onclick="setDiff('h',this)">Hard<br><span style="font-size:10px">+60 XP</span></button>
+      <button class="diff-opt${preDiff==='e'?' sel-e':''}" onclick="setDiff('e',this)">Easy<br><span style="font-size:10px">+15 XP</span></button>
+      <button class="diff-opt${preDiff==='m'?' sel-m':''}" onclick="setDiff('m',this)">Medium<br><span style="font-size:10px">+30 XP</span></button>
+      <button class="diff-opt${preDiff==='h'?' sel-h':''}" onclick="setDiff('h',this)">Hard<br><span style="font-size:10px">+60 XP</span></button>
     </div>`;
   }else{
+    const preName=existing?existing.name.replace(/"/g,'&quot;'):'';
+    const preColor=existing?.color||COLORS[0];
+    modalState.color=preColor;
     body.innerHTML=`<div class="modal-label">${type==='goal'?'Goal name':'Sub-goal name'}</div>
-    <input class="modal-input" id="m-name" placeholder="${type==='goal'?'e.g. Python, Algorithms...':'e.g. Recursion, Loops...'}" onkeydown="if(event.key==='Enter')submitModal()">
-    ${type==='goal'?`<div class="modal-label">Color</div><div id="color-row">${COLORS.map(c=>`<div class="color-swatch${c===COLORS[0]?' sel':''}" style="background:${c}" onclick="setColor('${c}',this)"></div>`).join('')}</div>`:''}`;
+    <input class="modal-input" id="m-name" placeholder="${type==='goal'?'e.g. Python, Algorithms...':'e.g. Recursion, Loops...'}" value="${preName}" onkeydown="if(event.key==='Enter')submitModal()">
+    ${type==='goal'?`<div class="modal-label">Color</div><div id="color-row">${COLORS.map(c=>`<div class="color-swatch${c===preColor?' sel':''}" style="background:${c}" onclick="setColor('${c}',this)"></div>`).join('')}</div>`:''}`;
   }
   document.getElementById('modal-overlay').classList.add('open');
   setTimeout(()=>{const i=document.getElementById('m-name')||document.getElementById('m-text');if(i)i.focus();},50);
 }
 function setDiff(d,el){modalState.diff=d;document.querySelectorAll('.diff-opt').forEach(b=>b.className='diff-opt');el.className='diff-opt sel-'+d;}
 function setColor(c,el){modalState.color=c;document.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('sel'));el.classList.add('sel');}
-function closeModal(){document.getElementById('modal-overlay').classList.remove('open');}
+function closeModal(){document.getElementById('modal-overlay').classList.remove('open');document.querySelector('.btn-save').textContent='Add';}
 function handleOverlayClick(e){if(e.target===document.getElementById('modal-overlay'))closeModal();}
 async function submitModal(){
-  const{type,gid,sid}=modalState;
-  if(type==='goal'){const n=(document.getElementById('m-name')||{}).value?.trim();if(!n)return;await addGoal(n,modalState.color);}
-  else if(type==='sub'){const n=(document.getElementById('m-name')||{}).value?.trim();if(!n)return;await addSubgoal(gid,n);}
-  else{const t=(document.getElementById('m-text')||{}).value?.trim();if(!t)return;await addTask(gid,sid,t,modalState.diff);}
+  const{type,gid,sid,editId}=modalState;
+  if(editId){
+    // Edit mode
+    if(type==='goal'){const n=(document.getElementById('m-name')||{}).value?.trim();if(!n)return;await editGoal(editId,n,modalState.color);}
+    else if(type==='sub'){const n=(document.getElementById('m-name')||{}).value?.trim();if(!n)return;await editSubgoal(editId,gid,n);}
+    else{const t=(document.getElementById('m-text')||{}).value?.trim();if(!t)return;await editTask(editId,gid,sid,t,modalState.diff);}
+    showToast('Saved!','info');
+  }else{
+    if(type==='goal'){const n=(document.getElementById('m-name')||{}).value?.trim();if(!n)return;await addGoal(n,modalState.color);}
+    else if(type==='sub'){const n=(document.getElementById('m-name')||{}).value?.trim();if(!n)return;await addSubgoal(gid,n);}
+    else{const t=(document.getElementById('m-text')||{}).value?.trim();if(!t)return;await addTask(gid,sid,t,modalState.diff);}
+    showToast({goal:'Goal added!',sub:'Sub-goal added!',task:'Task added!'}[type],'info');
+  }
   closeModal();
-  showToast({goal:'Goal added!',sub:'Sub-goal added!',task:'Task added!'}[type],'info');
 }
 
 // ─── Toast ─────────────────────────────────────────────────────────────────
-function showToast(msg,type){
+function showToast(msg,type,undoFn){
   const w=document.getElementById('toast-wrap');
   const el=document.createElement('div');
-  el.className='toast '+(type||'');el.textContent=msg;
-  w.appendChild(el);setTimeout(()=>el.remove(),3200);
+  el.className='toast '+(type||'');
+  if(undoFn){
+    el.innerHTML=msg+' <span style="color:#7F77DD;cursor:pointer;font-weight:700;margin-left:6px;text-decoration:underline" id="undo-link">Undo</span>';
+    w.appendChild(el);
+    el.querySelector('#undo-link').onclick=()=>{undoFn();el.remove();};
+  }else{
+    el.textContent=msg;
+    w.appendChild(el);
+  }
+  setTimeout(()=>el.remove(),undoFn?4500:3200);
 }
 
 // ─── Render Sidebar ────────────────────────────────────────────────────────
@@ -597,8 +725,8 @@ function renderBreadcrumb(){
   const cg=goals.find(g=>g.id===view.goalId)||null;
   const cs=cg?.sub.find(s=>s.id===view.subId)||null;
   let h=`<span class="${cg?'crumb':'crumb-cur'}" onclick="${cg?'navHome()':''}">Goals</span>`;
-  if(cg)h+=`<span class="crumb-sep">›</span><span class="${cs?'crumb':'crumb-cur'}" onclick="${cs?`navGoal('${cg.id}')`:''}">${cg.name}</span>`;
-  if(cs)h+=`<span class="crumb-sep">›</span><span class="crumb-cur">${cs.name}</span>`;
+  if(cg)h+=`<span class="crumb-sep">›</span><span class="${cs?'crumb':'crumb-cur'}" onclick="${cs?`navGoal('${cg.id}')`:''}">${esc(cg.name)}</span>`;
+  if(cs)h+=`<span class="crumb-sep">›</span><span class="crumb-cur">${esc(cs.name)}</span>`;
   document.getElementById('breadcrumb').innerHTML=h;
 }
 
@@ -610,22 +738,26 @@ function renderContent(){
 
   if(cg&&cs){
     const done=cs.tasks.filter(t=>t.done).length;
-    let h=`<div class="section-row"><div><div class="section-title">${cs.name}</div><div class="section-sub">${done}/${cs.tasks.length} tasks complete</div></div>
+    let h=`<div class="section-row"><div><div class="section-title">${esc(cs.name)}</div><div class="section-sub">${done}/${cs.tasks.length} tasks complete</div></div>
     <button class="action-btn" style="background:#7F77DD" onclick="openModal('task','${cg.id}','${cs.id}')">+ Add Task</button></div>`;
     if(!cs.tasks.length)h+=`<div class="empty">No tasks yet — click Add Task above</div>`;
-    cs.tasks.forEach(t=>{
+    const filteredTasks = cs.tasks.filter(t=>matchSearch(t.text));
+    if(searchQuery && filteredTasks.length===0)h+=`<div class="empty">No tasks match "${esc(searchQuery)}"</div>`;
+    filteredTasks.forEach(t=>{
       const dc=t.diff==='e'?'diff-e':t.diff==='h'?'diff-h':'diff-m';
       const dl=t.diff==='e'?'Easy':t.diff==='h'?'Hard':'Medium';
       const fileHtml = t.file_url
-        ? `<a class="file-link" href="${t.file_url}" target="_blank" title="${t.file_name}">📎 ${t.file_name}</a>`
-        : (t.file_name ? `<span class="file-link" title="${t.file_name}">📎 ${t.file_name}</span>` : '');
+        ? `<a class="file-link" href="${t.file_url}" target="_blank" title="${esc(t.file_name)}">📎 ${esc(t.file_name)}</a>`
+        : (t.file_name ? `<span class="file-link" title="${esc(t.file_name)}">📎 ${esc(t.file_name)}</span>` : '');
       h+=`<div class="task-row${t.done?' done':''}">
         <div class="task-check${t.done?' checked':''}" onclick="toggleTask('${cg.id}','${cs.id}','${t.id}')"></div>
-        <span class="task-text">${t.text}</span>
+        <span class="task-text">${esc(t.text)}</span>
         <div class="task-right">
           ${fileHtml}
           <span class="diff-badge ${dc}">${dl} +${XPV[t.diff]}</span>
-          <button class="attach-btn${t.file_name?' has-file':''}" onclick="triggerAttach('${cg.id}','${cs.id}','${t.id}')">📎 ${t.file_name?'Update':'Attach'}</button>
+          <button class="attach-btn${t.file_name?' has-file':''}" onclick="event.stopPropagation();triggerAttach('${cg.id}','${cs.id}','${t.id}')">📎 ${t.file_name?'Update':'Attach'}</button>
+          <button class="edit-btn" onclick="event.stopPropagation();openModal('task','${cg.id}','${cs.id}','${t.id}')" title="Edit task">✏️</button>
+          <button class="del-btn" onclick="event.stopPropagation();confirmDelete('task','${cg.id}','${cs.id}','${t.id}')" title="Delete task">✕</button>
         </div></div>`;
     });
     c.innerHTML=h;return;
@@ -634,17 +766,23 @@ function renderContent(){
   if(cg){
     const gd=cg.sub.reduce((a,s)=>a+s.tasks.filter(t=>t.done).length,0);
     const gt=cg.sub.reduce((a,s)=>a+s.tasks.length,0);
-    let h=`<div class="section-row"><div><div style="display:flex;align-items:center;gap:8px"><div style="width:10px;height:10px;border-radius:50%;background:${cg.color}"></div><div class="section-title">${cg.name}</div></div>
+    let h=`<div class="section-row"><div><div style="display:flex;align-items:center;gap:8px"><div style="width:10px;height:10px;border-radius:50%;background:${cg.color}"></div><div class="section-title">${esc(cg.name)}</div></div>
     <div class="section-sub">${gd}/${gt} tasks complete</div></div>
     <button class="action-btn" style="background:${cg.color}" onclick="openModal('sub','${cg.id}')">+ Add Sub-goal</button></div>`;
     if(!cg.sub.length)h+=`<div class="empty">No sub-goals yet — click Add Sub-goal above</div>`;
-    cg.sub.forEach(s=>{
+    const filteredSubs = searchQuery
+      ? cg.sub.filter(s=>matchSearch(s.name)||s.tasks.some(t=>matchSearch(t.text)))
+      : cg.sub;
+    if(searchQuery && filteredSubs.length===0)h+=`<div class="empty">No sub-goals match "${esc(searchQuery)}"</div>`;
+    filteredSubs.forEach(s=>{
       const sd=s.tasks.filter(t=>t.done).length,comp=s.tasks.length>0&&sd===s.tasks.length;
       h+=`<div class="sg-card${comp?' complete':''}" onclick="navSub('${cg.id}','${s.id}')">
         <span style="font-size:16px">${comp?'✓':'📂'}</span>
-        <span class="sg-name">${s.name}</span>
+        <span class="sg-name">${esc(s.name)}</span>
         ${comp?'<span class="badge-complete">Complete</span>':''}
         <span class="sg-meta">${sd}/${s.tasks.length} tasks</span>
+        <button class="edit-btn" onclick="event.stopPropagation();openModal('sub','${cg.id}',null,'${s.id}')" title="Edit sub-goal">✏️</button>
+        <button class="del-btn" onclick="event.stopPropagation();confirmDelete('sub','${cg.id}','${s.id}')" title="Delete sub-goal">✕</button>
         <span style="color:#8878c0;font-size:14px">›</span></div>`;
     });
     c.innerHTML=h;return;
@@ -653,16 +791,22 @@ function renderContent(){
   const allT=goals.reduce((a,g)=>a+g.sub.reduce((b,s)=>b+s.tasks.length,0),0);
   const doneT=goals.reduce((a,g)=>a+g.sub.reduce((b,s)=>b+s.tasks.filter(k=>k.done).length,0),0);
   let h=`<div class="section-row"><div><div class="section-title">All Goals</div><div class="section-sub">${doneT} of ${allT} tasks complete</div></div></div>`;
-  goals.forEach(g=>{
+  const filteredGoals = searchQuery
+    ? goals.filter(g=>matchSearch(g.name)||g.sub.some(s=>matchSearch(s.name)||s.tasks.some(t=>matchSearch(t.text))))
+    : goals;
+  if(searchQuery && filteredGoals.length===0)h+=`<div class="empty">No goals match "${esc(searchQuery)}"</div>`;
+  filteredGoals.forEach(g=>{
     const gd=g.sub.reduce((a,s)=>a+s.tasks.filter(t=>t.done).length,0);
     const gt=g.sub.reduce((a,s)=>a+s.tasks.length,0);
     const comp=gt>0&&gd===gt,pct=gt?Math.round(gd/gt*100):0;
     h+=`<div class="goal-card" onclick="navGoal('${g.id}')">
       <span style="font-size:18px">📁</span>
-      <div class="gc-bar-wrap"><div class="gc-name">${g.name}</div>
+      <div class="gc-bar-wrap"><div class="gc-name">${esc(g.name)}</div>
       <div class="gc-prog"><div class="gc-prog-fill" style="width:${pct}%;background:${g.color}"></div></div></div>
       ${comp?'<span class="badge-complete">Complete</span>':''}
       <span class="gc-meta">${gd}/${gt} tasks</span>
+      <button class="edit-btn" onclick="event.stopPropagation();openModal('goal',null,null,'${g.id}')" title="Edit goal">✏️</button>
+      <button class="del-btn" onclick="event.stopPropagation();confirmDelete('goal','${g.id}')" title="Delete goal">✕</button>
       <span class="gc-arr">›</span></div>`;
   });
   h+=`<div class="add-row" onclick="openModal('goal')">+ Add new goal</div>`;
