@@ -225,10 +225,11 @@ body{font-family:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;backgroun
       <div id="topbar-right">
         <input id="search-input" type="text" placeholder="Search tasks..." oninput="onSearch(this.value)" style="padding:6px 12px;background:#12102a;border:1px solid #3d3570;border-radius:7px;font-size:12px;color:#e8e4ff;width:160px;font-family:inherit;outline:none" onfocus="this.style.borderColor='#7F77DD'" onblur="this.style.borderColor='#3d3570'">
         <div id="sync-status"><div id="sync-dot"></div><span id="sync-text">Connecting...</span></div>
-        <button class="tb-btn icon" onclick="exportJSON()" title="Export for Claude">📤</button>
-        <button class="tb-btn icon" onclick="openImport()" title="Import from Claude">📥</button>
-        <button class="tb-btn icon" onclick="setupToken()" title="GitHub Token Settings">🔑</button>
-        <button class="tb-btn primary" onclick="openModal('goal')">+ Add Goal</button>
+        <button class="tb-btn icon" onclick="playClick();exportJSON()" title="Export for Claude">📤</button>
+        <button class="tb-btn icon" onclick="playClick();openImport()" title="Import from Claude">📥</button>
+        <button class="tb-btn icon" onclick="playClick();setupToken()" title="GitHub Token Settings">🔑</button>
+        <button class="tb-btn icon" id="sound-toggle" onclick="toggleSound()" title="Toggle Sound">🔊</button>
+        <button class="tb-btn primary" onclick="playClick();openModal('goal')">+ Add Goal</button>
       </div>
     </div>
     <div id="content"></div>
@@ -407,6 +408,7 @@ async function toggleTask(gid,sid,tid){
     diff=k.diff;nowDone=!k.done;
     return{...k,done:nowDone,done_date:nowDone?td:null};
   })})});
+  if(nowDone)playDing();else playUndone();
   renderSidebar();renderContent();
   try{
     setSyncStatus('syncing','Saving...');
@@ -414,7 +416,6 @@ async function toggleTask(gid,sid,tid){
     if(nowDone){
       const xpGained=XPV[diff]||0;
       showToast('+'+xpGained+' XP earned!','xp',()=>undoToggle(gid,sid,tid,diff,true));
-      playDing();
       let ns={...stats};
       if(!(ns.attendance||[]).includes(td)){
         ns.attendance=[...(ns.attendance||[]),td];
@@ -705,23 +706,87 @@ function showToast(msg,type,undoFn){
 }
 
 // ─── Sound Effects (Web Audio API) ────────────────────────────────────
-let _audioCtx=null;
+let _audioCtx=null,_soundOn=true;
 function getAudioCtx(){if(!_audioCtx)_audioCtx=new(window.AudioContext||window.webkitAudioContext)();return _audioCtx;}
-function playDing(){
-  try{const ctx=getAudioCtx(),o=ctx.createOscillator(),g=ctx.createGain();
-  o.connect(g);g.connect(ctx.destination);o.type='sine';o.frequency.value=880;
-  g.gain.setValueAtTime(0.25,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.35);
-  o.start(ctx.currentTime);o.stop(ctx.currentTime+0.35);}catch(e){}
+function toggleSound(){
+  playTuck();_soundOn=!_soundOn;
+  document.getElementById('sound-toggle').textContent=_soundOn?'🔊':'🔇';
 }
+function _p(fn){if(!_soundOn)return;try{fn(getAudioCtx());}catch(e){}}
+
+// Check task — bright ascending chime
+function playDing(){
+  _p(ctx=>{
+    const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);
+    o.type='sine';o.frequency.setValueAtTime(660,ctx.currentTime);o.frequency.linearRampToValueAtTime(1100,ctx.currentTime+0.08);
+    g.gain.setValueAtTime(0.22,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.25);
+    o.start(ctx.currentTime);o.stop(ctx.currentTime+0.25);
+  });
+}
+
+// Uncheck task — soft descending tone
+function playUndone(){
+  _p(ctx=>{
+    const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);
+    o.type='sine';o.frequency.setValueAtTime(700,ctx.currentTime);o.frequency.linearRampToValueAtTime(420,ctx.currentTime+0.15);
+    g.gain.setValueAtTime(0.15,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.2);
+    o.start(ctx.currentTime);o.stop(ctx.currentTime+0.2);
+  });
+}
+
+// Premium mouse click for goal/subgoal navigation
+function playNavClick(){
+  _p(ctx=>{
+    const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);
+    o.type='sine';o.frequency.value=1200;
+    g.gain.setValueAtTime(0.08,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.04);
+    o.start(ctx.currentTime);o.stop(ctx.currentTime+0.04);
+  });
+}
+
+// Attachment — gentle paper-clip double blip
+function playAttach(){
+  _p(ctx=>{
+    [1400,1800].forEach((f,i)=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);
+      o.type='sine';o.frequency.value=f;
+      g.gain.setValueAtTime(0.1,ctx.currentTime+i*0.06);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+i*0.06+0.06);
+      o.start(ctx.currentTime+i*0.06);o.stop(ctx.currentTime+i*0.06+0.06);
+    });
+  });
+}
+
+// General UI click (add buttons, modals, etc.)
+function playClick(){
+  _p(ctx=>{
+    const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);
+    o.type='triangle';o.frequency.value=600;
+    g.gain.setValueAtTime(0.12,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.08);
+    o.start(ctx.currentTime);o.stop(ctx.currentTime+0.08);
+  });
+}
+
+// Smooth mild tuck for sound bar toggle & filter bar
+function playTuck(){
+  _p(ctx=>{
+    const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);
+    o.type='sine';o.frequency.setValueAtTime(300,ctx.currentTime);o.frequency.linearRampToValueAtTime(180,ctx.currentTime+0.06);
+    g.gain.setValueAtTime(0.12,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.12);
+    o.start(ctx.currentTime);o.stop(ctx.currentTime+0.12);
+  });
+}
+
+// Level-up fanfare
 function playLevelUp(){
-  try{const ctx=getAudioCtx();
-  [523.25,659.25,783.99].forEach((f,i)=>{
-    const o=ctx.createOscillator(),g=ctx.createGain();
-    o.connect(g);g.connect(ctx.destination);o.type='sine';o.frequency.value=f;
-    g.gain.setValueAtTime(0,ctx.currentTime+i*0.12);g.gain.linearRampToValueAtTime(0.2,ctx.currentTime+i*0.12+0.04);
-    g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+i*0.12+0.45);
-    o.start(ctx.currentTime+i*0.12);o.stop(ctx.currentTime+i*0.12+0.45);
-  });}catch(e){}
+  _p(ctx=>{
+    [523.25,659.25,783.99].forEach((f,i)=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);
+      o.type='sine';o.frequency.value=f;
+      g.gain.setValueAtTime(0,ctx.currentTime+i*0.12);g.gain.linearRampToValueAtTime(0.2,ctx.currentTime+i*0.12+0.04);
+      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+i*0.12+0.45);
+      o.start(ctx.currentTime+i*0.12);o.stop(ctx.currentTime+i*0.12+0.45);
+    });
+  });
 }
 
 // ─── Confetti System ──────────────────────────────────────────────────
@@ -824,9 +889,9 @@ function renderContent(){
   if(cg&&cs){
     const done=cs.tasks.filter(t=>t.done).length;
     let h=`<div class="section-row"><div><div class="section-title">${esc(cs.name)}</div><div class="section-sub">${done}/${cs.tasks.length} tasks complete</div></div>
-    <button class="action-btn" style="background:#7F77DD" onclick="openModal('task','${cg.id}','${cs.id}')">+ Add Task</button></div>`;
+    <button class="action-btn" style="background:#7F77DD" onclick="playClick();openModal('task','${cg.id}','${cs.id}')">+ Add Task</button></div>`;
     if(!cs.tasks.length)h+=`<div class="empty">No tasks yet — click Add Task above</div>`;
-    if(cs.tasks.length>0)h+=`<div class="diff-filter"><button class="diff-filter-btn${diffFilter==='all'?' active':''}" onclick="setDiffFilter('all')">All</button><button class="diff-filter-btn${diffFilter==='e'?' active':''}" onclick="setDiffFilter('e')">Easy</button><button class="diff-filter-btn${diffFilter==='m'?' active':''}" onclick="setDiffFilter('m')">Medium</button><button class="diff-filter-btn${diffFilter==='h'?' active':''}" onclick="setDiffFilter('h')">Hard</button></div>`;
+    if(cs.tasks.length>0)h+=`<div class="diff-filter"><button class="diff-filter-btn${diffFilter==='all'?' active':''}" onclick="playTuck();setDiffFilter('all')">All</button><button class="diff-filter-btn${diffFilter==='e'?' active':''}" onclick="playTuck();setDiffFilter('e')">Easy</button><button class="diff-filter-btn${diffFilter==='m'?' active':''}" onclick="playTuck();setDiffFilter('m')">Medium</button><button class="diff-filter-btn${diffFilter==='h'?' active':''}" onclick="playTuck();setDiffFilter('h')">Hard</button></div>`;
     const filteredTasks = cs.tasks.filter(t=>matchSearch(t.text)&&(diffFilter==='all'||t.diff===diffFilter));
     if(diffFilter!=='all'&&filteredTasks.length===0)h+=`<div class="empty">No ${diffFilter==='e'?'Easy':diffFilter==='h'?'Hard':'Medium'} tasks here</div>`;
     else if(searchQuery && filteredTasks.length===0)h+=`<div class="empty">No tasks match "${esc(searchQuery)}"</div>`;
@@ -842,7 +907,7 @@ function renderContent(){
         <div class="task-right">
           ${fileHtml}
           <span class="diff-badge ${dc}">${dl} +${XPV[t.diff]}</span>
-          <button class="attach-btn${t.file_name?' has-file':''}" onclick="event.stopPropagation();triggerAttach('${cg.id}','${cs.id}','${t.id}')">📎 ${t.file_name?'Update':'Attach'}</button>
+          <button class="attach-btn${t.file_name?' has-file':''}" onclick="event.stopPropagation();playAttach();triggerAttach('${cg.id}','${cs.id}','${t.id}')">📎 ${t.file_name?'Update':'Attach'}</button>
           <button class="edit-btn" onclick="event.stopPropagation();openModal('task','${cg.id}','${cs.id}','${t.id}')" title="Edit task">✏️</button>
         </div></div>`;
     });
@@ -854,7 +919,7 @@ function renderContent(){
     const gt=cg.sub.reduce((a,s)=>a+s.tasks.length,0);
     let h=`<div class="section-row"><div><div style="display:flex;align-items:center;gap:8px"><div style="width:10px;height:10px;border-radius:50%;background:${cg.color}"></div><div class="section-title">${esc(cg.name)}</div></div>
     <div class="section-sub">${gd}/${gt} tasks complete</div></div>
-    <button class="action-btn" style="background:${cg.color}" onclick="openModal('sub','${cg.id}')">+ Add Sub-goal</button></div>`;
+    <button class="action-btn" style="background:${cg.color}" onclick="playClick();openModal('sub','${cg.id}')">+ Add Sub-goal</button></div>`;
     if(!cg.sub.length)h+=`<div class="empty">No sub-goals yet — click Add Sub-goal above</div>`;
     const filteredSubs = searchQuery
       ? cg.sub.filter(s=>matchSearch(s.name)||s.tasks.some(t=>matchSearch(t.text)))
@@ -862,7 +927,7 @@ function renderContent(){
     if(searchQuery && filteredSubs.length===0)h+=`<div class="empty">No sub-goals match "${esc(searchQuery)}"</div>`;
     filteredSubs.forEach(s=>{
       const sd=s.tasks.filter(t=>t.done).length,comp=s.tasks.length>0&&sd===s.tasks.length;
-      h+=`<div class="sg-card${comp?' complete':''}" onclick="navSub('${cg.id}','${s.id}')">
+      h+=`<div class="sg-card${comp?' complete':''}" onclick="playNavClick();navSub('${cg.id}','${s.id}')">
         <span style="font-size:16px">${comp?'✓':'📂'}</span>
         <span class="sg-name">${esc(s.name)}</span>
         ${comp?'<span class="badge-complete">Complete</span>':''}
@@ -884,7 +949,7 @@ function renderContent(){
     const gd=g.sub.reduce((a,s)=>a+s.tasks.filter(t=>t.done).length,0);
     const gt=g.sub.reduce((a,s)=>a+s.tasks.length,0);
     const comp=gt>0&&gd===gt,pct=gt?Math.round(gd/gt*100):0;
-    h+=`<div class="goal-card" onclick="navGoal('${g.id}')">
+    h+=`<div class="goal-card" onclick="playNavClick();navGoal('${g.id}')">
       <span style="font-size:18px">📁</span>
       <div class="gc-bar-wrap"><div class="gc-name">${esc(g.name)}</div>
       <div class="gc-prog"><div class="gc-prog-fill" style="width:${pct}%;background:${g.color}"></div></div></div>
@@ -893,7 +958,7 @@ function renderContent(){
       <button class="edit-btn" onclick="event.stopPropagation();openModal('goal',null,null,'${g.id}')" title="Edit goal">✏️</button>
       <span class="gc-arr">›</span></div>`;
   });
-  h+=`<div class="add-row" onclick="openModal('goal')">+ Add new goal</div>`;
+  h+=`<div class="add-row" onclick="playClick();openModal('goal')">+ Add new goal</div>`;
   c.innerHTML=h;
 }
 
