@@ -152,6 +152,18 @@ body{font-family:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;backgroun
   #topbar{padding:12px 14px}
   #content{padding:16px}
 }
+/* ── Confetti ── */
+#confetti-canvas{position:fixed;inset:0;pointer-events:none;z-index:10001}
+/* ── Difficulty Filter ── */
+.diff-filter{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.diff-filter-btn{padding:5px 14px;border-radius:6px;border:1px solid #3d3570;background:transparent;color:#a89de0;cursor:pointer;font-size:12px;font-weight:500;font-family:'Inter',sans-serif;transition:all .15s}
+.diff-filter-btn:hover{border-color:#7F77DD;color:#e8e4ff}
+.diff-filter-btn.active{background:#7F77DD;border-color:#7F77DD;color:#fff}
+/* ── Stats Panel ── */
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0}
+.stat-val{color:#e8e4ff;font-weight:700;font-size:13px}
+.stat-lbl{color:#a89de0;font-size:11px}
+.stat-goal-name{color:#a89de0;font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
 </style>
 </head>
 <body>
@@ -193,6 +205,10 @@ body{font-family:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;backgroun
       <div class="sb-label">Streak Milestones</div>
       <div id="milestone-list"></div>
     </div>
+    <div class="sb-section">
+      <div class="sb-label">Quick Stats</div>
+      <div id="stats-panel"></div>
+    </div>
     <div class="sb-section" style="margin-top:auto;border-bottom:none">
       <div class="sb-label">Today's XP Earned</div>
       <div id="txp-val">+0 XP</div>
@@ -221,6 +237,7 @@ body{font-family:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;backgroun
 
 <div id="toast-wrap"></div>
 <div id="levelup-banner"><h2>LEVEL UP!</h2><p id="levelup-text"></p></div>
+<canvas id="confetti-canvas"></canvas>
 <div id="modal-overlay" onclick="handleOverlayClick(event)">
   <div id="modal-box">
     <div id="modal-title"></div>
@@ -313,6 +330,7 @@ let modalState={};
 let attachTarget=null;
 let searchQuery='';
 let prevLevel=1;
+let diffFilter='all';
 let _id=0;
 function uid(){return 'id'+(Date.now())+(++_id);}
 function toDay(){return new Date().toISOString().slice(0,10);}
@@ -396,6 +414,7 @@ async function toggleTask(gid,sid,tid){
     if(nowDone){
       const xpGained=XPV[diff]||0;
       showToast('+'+xpGained+' XP earned!','xp',()=>undoToggle(gid,sid,tid,diff,true));
+      playDing();
       let ns={...stats};
       if(!(ns.attendance||[]).includes(td)){
         ns.attendance=[...(ns.attendance||[]),td];
@@ -408,7 +427,7 @@ async function toggleTask(gid,sid,tid){
             ns.bonus_xp=(ns.bonus_xp||0)+m.xp;
             ns.claimed=[...(ns.claimed||[]),i];
             await dbPatch('stats',{bonus_xp:ns.bonus_xp,claimed:ns.claimed},'?id=eq.1');
-            setTimeout(()=>showToast('🔥 '+m.days+'-day streak! +'+m.xp+' XP!','milestone'),600);
+            setTimeout(()=>{showToast('🔥 '+m.days+'-day streak! +'+m.xp+' XP!','milestone');fireConfetti();},600);
           }
         });
         stats=ns;
@@ -545,9 +564,9 @@ function matchSearch(text){
 }
 
 // ─── Navigation ────────────────────────────────────────────────────────────
-function navHome(){view={goalId:null,subId:null};clearSearch();render();}
-function navGoal(gid){view={goalId:gid,subId:null};clearSearch();render();}
-function navSub(gid,sid){view={goalId:gid,subId:sid};clearSearch();render();}
+function navHome(){view={goalId:null,subId:null};clearSearch();diffFilter='all';render();}
+function navGoal(gid){view={goalId:gid,subId:null};clearSearch();diffFilter='all';render();}
+function navSub(gid,sid){view={goalId:gid,subId:sid};clearSearch();diffFilter='all';render();}
 function clearSearch(){searchQuery='';const si=document.getElementById('search-input');if(si)si.value='';}
 
 // ─── Export / Import ───────────────────────────────────────────────────────
@@ -685,11 +704,66 @@ function showToast(msg,type,undoFn){
   setTimeout(()=>el.remove(),undoFn?4500:3200);
 }
 
+// ─── Sound Effects (Web Audio API) ────────────────────────────────────
+let _audioCtx=null;
+function getAudioCtx(){if(!_audioCtx)_audioCtx=new(window.AudioContext||window.webkitAudioContext)();return _audioCtx;}
+function playDing(){
+  try{const ctx=getAudioCtx(),o=ctx.createOscillator(),g=ctx.createGain();
+  o.connect(g);g.connect(ctx.destination);o.type='sine';o.frequency.value=880;
+  g.gain.setValueAtTime(0.25,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.35);
+  o.start(ctx.currentTime);o.stop(ctx.currentTime+0.35);}catch(e){}
+}
+function playLevelUp(){
+  try{const ctx=getAudioCtx();
+  [523.25,659.25,783.99].forEach((f,i)=>{
+    const o=ctx.createOscillator(),g=ctx.createGain();
+    o.connect(g);g.connect(ctx.destination);o.type='sine';o.frequency.value=f;
+    g.gain.setValueAtTime(0,ctx.currentTime+i*0.12);g.gain.linearRampToValueAtTime(0.2,ctx.currentTime+i*0.12+0.04);
+    g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+i*0.12+0.45);
+    o.start(ctx.currentTime+i*0.12);o.stop(ctx.currentTime+i*0.12+0.45);
+  });}catch(e){}
+}
+
+// ─── Confetti System ──────────────────────────────────────────────────
+const _confettiColors=['#7F77DD','#a78bfa','#f5c842','#4ade80','#fb923c','#e8e4ff','#1D9E75'];
+let _confettiRaf=null;
+function fireConfetti(){
+  const canvas=document.getElementById('confetti-canvas');
+  const ctx=canvas.getContext('2d');
+  canvas.width=window.innerWidth;canvas.height=window.innerHeight;
+  const particles=Array.from({length:80},()=>({
+    x:canvas.width/2+(Math.random()-0.5)*200,y:canvas.height/2-60,
+    vx:(Math.random()-0.5)*14,vy:Math.random()*-15-5,
+    w:Math.random()*8+4,h:Math.random()*6+3,
+    color:_confettiColors[Math.floor(Math.random()*_confettiColors.length)],
+    rot:Math.random()*360,rv:(Math.random()-0.5)*14,life:1
+  }));
+  if(_confettiRaf)cancelAnimationFrame(_confettiRaf);
+  function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    let alive=false;
+    particles.forEach(p=>{
+      if(p.life<=0)return;alive=true;
+      p.x+=p.vx;p.vy+=0.35;p.y+=p.vy;p.rot+=p.rv;p.life-=0.013;p.vx*=0.99;
+      ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot*Math.PI/180);
+      ctx.globalAlpha=Math.max(0,p.life);ctx.fillStyle=p.color;
+      ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);ctx.restore();
+    });
+    if(alive)_confettiRaf=requestAnimationFrame(draw);
+    else{ctx.clearRect(0,0,canvas.width,canvas.height);_confettiRaf=null;}
+  }
+  draw();
+}
+
+// ─── Difficulty Filter ─────────────────────────────────────────────────
+function setDiffFilter(d){diffFilter=d;renderContent();}
+
 // ─── Level-up detection ──────────────────────────────────────────────────
 function showLevelUp(lv,title){
   document.getElementById('levelup-text').textContent='Lv'+lv+' — '+title;
   const b=document.getElementById('levelup-banner');b.classList.add('show');
   setTimeout(()=>b.classList.remove('show'),3000);
+  fireConfetti();playLevelUp();
 }
 
 // ─── Render Sidebar ────────────────────────────────────────────────────────
@@ -716,6 +790,19 @@ function renderSidebar(){
     return`<div class="ms-item${ready?' ready':''}${cl?' claimed':''}"><span>${cl?'✓':'○'}</span><span class="ms-lbl">${m.days}-day streak</span><span class="ms-xp">+${m.xp} XP</span></div>`;
   }).join('');
   if(lv.lv>prevLevel){showLevelUp(lv.lv,lv.title);prevLevel=lv.lv;}
+  // Quick Stats
+  let todayDone=0,weekDone=0;
+  goals.forEach(g=>g.sub.forEach(s=>s.tasks.forEach(k=>{
+    if(k.done&&k.done_date===td)todayDone++;
+    if(k.done&&k.done_date&&week.includes(k.done_date))weekDone++;
+  })));
+  let hardestGoal=null,hardCount=0;
+  goals.forEach(g=>{const hc=g.sub.reduce((a,s)=>a+s.tasks.filter(t=>!t.done&&t.diff==='h').length,0);if(hc>hardCount){hardCount=hc;hardestGoal=g.name;}});
+  document.getElementById('stats-panel').innerHTML=
+    `<div class="stat-row"><span class="stat-lbl">Done today</span><span class="stat-val">${todayDone}</span></div>`+
+    `<div class="stat-row"><span class="stat-lbl">Done this week</span><span class="stat-val">${weekDone}</span></div>`+
+    `<div class="stat-row"><span class="stat-lbl">Active days</span><span class="stat-val">${att.length}</span></div>`+
+    (hardestGoal?`<div class="stat-row"><span class="stat-lbl">Hardest goal</span><span class="stat-goal-name" title="${esc(hardestGoal)}">${esc(hardestGoal)}</span></div>`:'');
 }
 
 // ─── Render Breadcrumb ─────────────────────────────────────────────────────
@@ -739,8 +826,10 @@ function renderContent(){
     let h=`<div class="section-row"><div><div class="section-title">${esc(cs.name)}</div><div class="section-sub">${done}/${cs.tasks.length} tasks complete</div></div>
     <button class="action-btn" style="background:#7F77DD" onclick="openModal('task','${cg.id}','${cs.id}')">+ Add Task</button></div>`;
     if(!cs.tasks.length)h+=`<div class="empty">No tasks yet — click Add Task above</div>`;
-    const filteredTasks = cs.tasks.filter(t=>matchSearch(t.text));
-    if(searchQuery && filteredTasks.length===0)h+=`<div class="empty">No tasks match "${esc(searchQuery)}"</div>`;
+    if(cs.tasks.length>0)h+=`<div class="diff-filter"><button class="diff-filter-btn${diffFilter==='all'?' active':''}" onclick="setDiffFilter('all')">All</button><button class="diff-filter-btn${diffFilter==='e'?' active':''}" onclick="setDiffFilter('e')">Easy</button><button class="diff-filter-btn${diffFilter==='m'?' active':''}" onclick="setDiffFilter('m')">Medium</button><button class="diff-filter-btn${diffFilter==='h'?' active':''}" onclick="setDiffFilter('h')">Hard</button></div>`;
+    const filteredTasks = cs.tasks.filter(t=>matchSearch(t.text)&&(diffFilter==='all'||t.diff===diffFilter));
+    if(diffFilter!=='all'&&filteredTasks.length===0)h+=`<div class="empty">No ${diffFilter==='e'?'Easy':diffFilter==='h'?'Hard':'Medium'} tasks here</div>`;
+    else if(searchQuery && filteredTasks.length===0)h+=`<div class="empty">No tasks match "${esc(searchQuery)}"</div>`;
     filteredTasks.forEach(t=>{
       const dc=t.diff==='e'?'diff-e':t.diff==='h'?'diff-h':'diff-m';
       const dl=t.diff==='e'?'Easy':t.diff==='h'?'Hard':'Medium';
