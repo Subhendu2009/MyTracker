@@ -12,12 +12,24 @@ Table: subgoals
   Columns: id, goal_id (→ goals.id), name, position
 
 Table: tasks
-  Columns: id, subgoal_id (→ subgoals.id), goal_id (→ goals.id), text, diff, done (boolean), done_date (date or null), file_name, file_url, position
+  Columns: id, subgoal_id (→ subgoals.id), goal_id (→ goals.id), text, diff,
+           done (boolean), done_date (date or null), file_name, file_url,
+           position, due_date (text, nullable — YYYY-MM-DD format)
 
-Table: stats
-  Columns: id, streak, last_active, attendance (array), claimed (array), bonus_xp
+Table: stats (single row, id=1)
+  Columns: id, streak, last_active, attendance (array of date strings),
+           claimed (array of milestone indices), bonus_xp, gold (integer),
+           ach_claimed (array of achievement IDs)
 
 DIFFICULTY VALUES: "e" = Easy (+15 XP), "m" = Medium (+30 XP), "h" = Hard (+60 XP)
+
+DUE DATES
+=========
+- You can SET due_date on tasks. The student cannot set these — only you can.
+- Format: 'YYYY-MM-DD' (e.g. '2026-07-05')
+- Set a due_date when you want to give the student a deadline for a task.
+- The tracker will show: overdue (red pulse), due today (green), upcoming (purple).
+- This creates urgency and helps the student stay on track.
 
 ID REFERENCE (use these directly — no need to look them up)
 ============================================================
@@ -94,13 +106,17 @@ COMMON OPERATIONS
      done_date: null,
      file_name: null,
      file_url: null,
-     position: [count existing tasks in that subgoal, use that number]
+     position: [count existing tasks in that subgoal, use that number],
+     due_date: null  // or set a deadline like '2026-07-05'
    }
 
 3. MARK a task done (after verifying student's work):
    UPDATE tasks WHERE id = '[TASK_ID]' SET done = true, done_date = 'YYYY-MM-DD'
 
-4. ADD a new sub-goal under an existing goal:
+4. SET A DEADLINE on a task:
+   UPDATE tasks WHERE id = '[TASK_ID]' SET due_date = 'YYYY-MM-DD'
+
+5. ADD a new sub-goal under an existing goal:
    INSERT into subgoals: {
      id: "id" + current_timestamp_millis,
      goal_id: "[GOAL_ID]",
@@ -108,7 +124,7 @@ COMMON OPERATIONS
      position: [count existing subgoals in that goal]
    }
 
-5. ADD a new goal:
+6. ADD a new goal:
    INSERT into goals: {
      id: "id" + current_timestamp_millis,
      name: "Topic Name",
@@ -141,6 +157,11 @@ RULES
 
 - NEVER delete existing tasks. Only ADD new ones based on identified weaknesses.
 
+- You can set due_date on tasks to give the student deadlines. Use this when you want
+  to create urgency. Format: 'YYYY-MM-DD'.
+
+- DO NOT modify the stats table directly. The tracker app handles XP, gold, streaks,
+  and achievements automatically. Only the tracker app writes to stats.
 ## 1. Instructions
 
 [unknown] - Keep lessons short and gradual — never skip steps.
@@ -162,7 +183,7 @@ RULES
 
 ## 2. Identity
 
-[unknown] - Name: Subhankar Subhendu (goes by Subhendu).
+[unknown] - Name: Subhendu (goes by Subhendu).
 [unknown] - Has lost previous learning progress across past accounts and is intentionally rebuilding from the ground up.
 
 ---
