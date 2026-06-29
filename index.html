@@ -164,6 +164,65 @@ body{font-family:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;backgroun
 .stat-val{color:#e8e4ff;font-weight:700;font-size:13px}
 .stat-lbl{color:#a89de0;font-size:11px}
 .stat-goal-name{color:#a89de0;font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
+/* ── Achievement Overlay ── */
+#ach-overlay{position:fixed;inset:0;background:rgba(5,3,15,.92);display:none;flex-direction:column;z-index:10002;overflow:hidden}
+#ach-overlay.open{display:flex}
+#ach-header{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid #2d2650;flex-shrink:0}
+#ach-header h2{font-size:20px;font-weight:800;color:#fff}
+#ach-gold{display:flex;align-items:center;gap:6px;color:#f5c842;font-size:16px;font-weight:700}
+#ach-close{width:36px;height:36px;border-radius:8px;border:1px solid #3d3570;background:transparent;color:#e8e4ff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+#ach-close:hover{background:#3d3570}
+#ach-body{flex:1;overflow-y:auto;padding:20px 24px}
+.ach-profile{display:flex;align-items:center;gap:20px;padding:20px;background:#1e1838;border:1px solid #2d2650;border-radius:12px;margin-bottom:24px}
+.ach-profile-avatar{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#7F77DD,#6C5CE7);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#fff;border:3px solid #4a3f8a;flex-shrink:0}
+.ach-profile-info{flex:1;min-width:0}
+.ach-profile-name{font-size:18px;font-weight:800;color:#fff}
+.ach-profile-sub{font-size:13px;color:#a89de0;margin-top:2px}
+.ach-badges{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.ach-badge-icon{width:34px;height:34px;border-radius:8px;background:#2d2650;border:1.5px solid #3d3570;display:flex;align-items:center;justify-content:center;font-size:16px}
+.ach-badge-icon.earned{background:#2a2558;border-color:#7F77DD;box-shadow:0 0 8px rgba(127,119,221,.3)}
+.ach-badge-icon.locked{opacity:.25;filter:grayscale(1)}
+.ach-tier-title{font-size:13px;font-weight:700;color:#a89de0;text-transform:uppercase;letter-spacing:.1em;margin:20px 0 12px;display:flex;align-items:center;gap:8px}
+.ach-tier-title:first-of-type{margin-top:0}
+.ach-stars{display:flex;gap:2px;font-size:12px}
+.ach-item{display:flex;align-items:center;gap:14px;padding:14px 16px;background:#1e1838;border:1px solid #2d2650;border-radius:10px;margin-bottom:8px;transition:all .2s}
+.ach-item.completed{border-color:#1a4a30}
+.ach-item.claimed{opacity:.45}
+.ach-icon{width:40px;height:40px;border-radius:10px;background:#12102a;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.ach-info{flex:1;min-width:0}
+.ach-name{font-size:14px;font-weight:700;color:#e8e4ff}
+.ach-desc{font-size:12px;color:#a89de0;margin-top:2px}
+.ach-prog-bar{height:4px;background:#2d2650;border-radius:2px;margin-top:6px;overflow:hidden}
+.ach-prog-fill{height:100%;border-radius:2px;transition:width .3s}
+.ach-rewards{display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0;min-width:70px}
+.ach-rwd{font-size:11px;font-weight:600;display:flex;align-items:center;gap:3px}
+.ach-rwd.xp{color:#b89dff}
+.ach-rwd.gold-rwd{color:#f5c842}
+.ach-rwd.badge-rwd{color:#a78bfa;font-size:13px}
+.ach-claim{padding:6px 16px;border-radius:7px;border:none;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;transition:all .15s}
+.ach-claim.ready{background:#1D9E75;color:#fff}
+.ach-claim.ready:hover{background:#22b884;transform:scale(1.05)}
+.ach-claim.done{background:#2d2650;color:#a89de0;cursor:default}
+.ach-claim.locked{background:transparent;border:1px solid #2d2650;color:#3d3570;cursor:default}
+/* ── Batch Complete ── */
+.batch-btn{padding:7px 14px;border:none;border-radius:7px;cursor:pointer;font-size:13px;font-weight:600;color:#fff;background:#1D9E75;margin-left:8px}
+.batch-btn:hover{background:#22b884}
+.batch-btn:disabled{opacity:.35;cursor:default;background:#1D9E75}
+/* ── Due Date ── */
+.due-badge{font-size:11px;padding:2px 8px;border-radius:4px;font-weight:500;white-space:nowrap}
+.due-badge.upcoming{background:#2a2558;color:#a78bfa}
+.due-badge.overdue{background:#3b1f07;color:#fb923c;animation:pulse 2s infinite}
+.due-badge.today-due{background:#16432b;color:#4ade80}
+/* ── Gold in sidebar ── */
+#sb-gold{color:#f5c842;font-size:15px;font-weight:700}
+#sb-gold-icon{font-size:14px}
+/* ── Drag & Drop ── */
+.drag-handle{color:#3d3570;cursor:grab;font-size:14px;user-select:none;padding:2px 4px;line-height:1;opacity:0;transition:opacity .15s;flex-shrink:0}
+*:hover>.drag-handle{opacity:1}
+.drag-handle:active{cursor:grabbing}
+.goal-card.dragging,.sg-card.dragging,.task-row.dragging{opacity:.35;transform:scale(.97)}
+.drop-indicator{height:3px;border-radius:2px;margin:-2px 0;background:#7F77DD;box-shadow:0 0 8px rgba(127,119,221,.5);pointer-events:none;animation:dropPulse 1s ease infinite}
+@keyframes dropPulse{0%,100%{opacity:.7}50%{opacity:1}}
 </style>
 </head>
 <body>
@@ -209,6 +268,9 @@ body{font-family:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;backgroun
       <div class="sb-label">Quick Stats</div>
       <div id="stats-panel"></div>
     </div>
+    <div class="sb-section" onclick="playClick();openAchievements()" style="cursor:pointer;transition:background .15s" onmouseover="this.style.background='#1e1838'" onmouseout="this.style.background='transparent'">
+      <div class="sb-label" style="display:flex;align-items:center;gap:6px">🏆 Achievements <span style="margin-left:auto;font-size:13px;color:#a89de0">›</span></div>
+    </div>
     <div class="sb-section" style="margin-top:auto;border-bottom:none">
       <div class="sb-label">Today's XP Earned</div>
       <div id="txp-val">+0 XP</div>
@@ -220,7 +282,8 @@ body{font-family:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;backgroun
     <div id="topbar">
       <div style="display:flex;align-items:center;gap:10px">
         <button id="menu-toggle" onclick="toggleSidebar()">☰</button>
-        <div id="breadcrumb"></div>
+        <button id="back-btn" class="tb-btn icon" style="display:none;width:28px;height:28px;font-size:16px" onclick="playNavClick();goBack()" title="Go back">‹</button>
+        <div id="breadcrumb" style="font-weight:800;font-size:16px;letter-spacing:.04em;color:#fff;cursor:pointer" onclick="navHome()">MyTracker</div>
       </div>
       <div id="topbar-right">
         <input id="search-input" type="text" placeholder="Search tasks..." oninput="onSearch(this.value)" style="padding:6px 12px;background:#12102a;border:1px solid #3d3570;border-radius:7px;font-size:12px;color:#e8e4ff;width:160px;font-family:inherit;outline:none" onfocus="this.style.borderColor='#7F77DD'" onblur="this.style.borderColor='#3d3570'">
@@ -229,7 +292,7 @@ body{font-family:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;backgroun
         <button class="tb-btn icon" onclick="playClick();openImport()" title="Import from Claude">📥</button>
         <button class="tb-btn icon" onclick="playClick();setupToken()" title="GitHub Token Settings">🔑</button>
         <button class="tb-btn icon" id="sound-toggle" onclick="toggleSound()" title="Toggle Sound">🔊</button>
-        <button class="tb-btn primary" onclick="playClick();openModal('goal')">+ Add Goal</button>
+
       </div>
     </div>
     <div id="content"></div>
@@ -251,6 +314,15 @@ body{font-family:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;backgroun
 </div>
 <input type="file" id="file-input" style="display:none">
 <input type="file" id="import-input" style="display:none" accept=".json">
+
+<div id="ach-overlay">
+  <div id="ach-header">
+    <h2>🏆 Achievements</h2>
+    <div id="ach-gold"><span style="color:#f5c842;font-size:18px">●</span> <span id="ach-gold-val">0</span></div>
+    <button id="ach-close" onclick="playClick();closeAchievements()">✕</button>
+  </div>
+  <div id="ach-body"></div>
+</div>
 
 <script>
 // ─── Supabase Config ───────────────────────────────────────────────────────
@@ -324,8 +396,33 @@ const MILESTONES=[{days:7,xp:100},{days:14,xp:200},{days:30,xp:500}];
 const COLORS=["#7F77DD","#1D9E75","#D85A30","#BA7517","#185FA5","#993556","#534AB7","#0F6E56","#639922","#D4537E"];
 const WL=["M","T","W","T","F","S","S"];
 
+// ─── Achievement Definitions ─────────────────────────────────────────────
+const ACHIEVEMENTS=[
+  // ── EASY (1 star) ──
+  {id:0,name:'First Blood',desc:'Complete your first task',tier:'easy',icon:'🩸',target:1,xp:20,gold:10,badge:null},
+  {id:1,name:'Getting Started',desc:'Complete 5 tasks',tier:'easy',icon:'📝',target:5,xp:50,gold:25,badge:null},
+  {id:2,name:'File Handler',desc:'Attach a file to any task',tier:'easy',icon:'📎',target:1,xp:30,gold:15,badge:null},
+  {id:3,name:'Week Warrior',desc:'Reach a 3-day streak',tier:'easy',icon:'📅',target:3,xp:50,gold:25,badge:null},
+  {id:4,name:'Goal Setter',desc:'Have 3 or more goals',tier:'easy',icon:'🎯',target:3,xp:30,gold:15,badge:null},
+  {id:5,name:'Explorer',desc:'Complete tasks in 3 different goals',tier:'easy',icon:'🧭',target:3,xp:50,gold:30,badge:'🧭'},
+  // ── MEDIUM (2 stars) ──
+  {id:6,name:'Half Century',desc:'Complete 25 tasks',tier:'medium',icon:'⚡',target:25,xp:150,gold:75,badge:null},
+  {id:7,name:'Streak Master',desc:'Reach a 7-day streak',tier:'medium',icon:'🔥',target:7,xp:200,gold:100,badge:null},
+  {id:8,name:'Hard Worker',desc:'Complete 5 tasks in one day',tier:'medium',icon:'💪',target:5,xp:150,gold:75,badge:null},
+  {id:9,name:'Deadline Crusher',desc:'Complete a task before its deadline',tier:'medium',icon:'⏰',target:1,xp:100,gold:50,badge:null},
+  {id:10,name:'Sub-goal Master',desc:'Complete all tasks in any sub-goal',tier:'medium',icon:'✅',target:1,xp:120,gold:60,badge:'✅'},
+  {id:11,name:'Knowledge Seeker',desc:'Complete tasks in 6 different goals',tier:'medium',icon:'📚',target:6,xp:200,gold:100,badge:'📚'},
+  // ── HARD (3 stars) ──
+  {id:12,name:'Centurion',desc:'Complete 100 tasks',tier:'hard',icon:'💯',target:100,xp:500,gold:250,badge:'💯'},
+  {id:13,name:'Unstoppable',desc:'Reach a 30-day streak',tier:'hard',icon:'🌋',target:30,xp:1000,gold:500,badge:'🔥'},
+  {id:14,name:'Perfectionist',desc:'100% complete any entire goal',tier:'hard',icon:'⭐',target:1,xp:400,gold:200,badge:'⭐'},
+  {id:15,name:'Marathon Runner',desc:'Complete 10 tasks in one day',tier:'hard',icon:'🏃',target:10,xp:500,gold:250,badge:null},
+  {id:16,name:'Speed Demon',desc:'Complete 3 hard tasks in one day',tier:'hard',icon:'😈',target:3,xp:300,gold:150,badge:null},
+  {id:17,name:'Legendary',desc:'Reach Level 12',tier:'hard',icon:'🏆',target:12,xp:800,gold:400,badge:'🏆'},
+];
+
 // ─── State ─────────────────────────────────────────────────────────────────
-let goals=[], stats={streak:0,last_active:null,attendance:[],claimed:[],bonus_xp:0};
+let goals=[], stats={streak:0,last_active:null,attendance:[],claimed:[],bonus_xp:0,gold:0,ach_claimed:[]};
 let view={goalId:null,subId:null};
 let modalState={};
 let attachTarget=null;
@@ -388,6 +485,8 @@ async function loadFromDB(){
     if(rawStats&&rawStats.length>0){
       stats=rawStats[0];
       if(stats.last_active&&stats.last_active<toYest())stats.streak=0;
+      stats.gold=stats.gold||0;
+      stats.ach_claimed=stats.ach_claimed||[];
     }
     if(goals.length===0) await seedInitialData();
     setSyncStatus('ok','Synced');
@@ -454,6 +553,44 @@ async function undoToggle(gid,sid,tid,diff,wasMarkedDone){
   }catch(e){setSyncStatus('err','Sync failed');}
   render();renderSidebar();
   showToast('Undone!','info');
+}
+
+// ─── Batch Complete ────────────────────────────────────────────────────
+async function batchComplete(gid,sid){
+  const td=toDay();
+  let count=0,totalXPGained=0;
+  goals=goals.map(g=>g.id!==gid?g:{...g,sub:g.sub.map(s=>s.id!==sid?s:{...s,tasks:s.tasks.map(k=>{
+    if(k.done)return k;
+    count++;totalXPGained+=XPV[k.diff]||0;
+    return{...k,done:true,done_date:td};
+  })})});
+  if(!count)return;
+  playDing();renderSidebar();renderContent();
+  try{
+    setSyncStatus('syncing','Saving...');
+    const goal=goals.find(g=>g.id===gid);
+    const sub=goal?.sub.find(s=>s.id===sid);
+    if(sub)for(const t of sub.tasks){if(t.done&&t.done_date===td)await dbPatch('tasks',{done:true,done_date:td},`?id=eq.${t.id}`);}
+    let ns={...stats};
+    if(!(ns.attendance||[]).includes(td)){
+      ns.attendance=[...(ns.attendance||[]),td];
+      if(ns.last_active===toYest())ns.streak=(ns.streak||0)+1;
+      else if(ns.last_active!==td)ns.streak=1;
+      ns.last_active=td;
+      await dbPatch('stats',{streak:ns.streak,last_active:ns.last_active,attendance:ns.attendance},'?id=eq.1');
+      MILESTONES.forEach(async(m,i)=>{
+        if(ns.streak>=m.days&&!(ns.claimed||[]).includes(i)){
+          ns.bonus_xp=(ns.bonus_xp||0)+m.xp;ns.claimed=[...(ns.claimed||[]),i];
+          await dbPatch('stats',{bonus_xp:ns.bonus_xp,claimed:ns.claimed},'?id=eq.1');
+          setTimeout(()=>{showToast('🔥 '+m.days+'-day streak! +'+m.xp+' XP!','milestone');fireConfetti();},600);
+        }
+      });
+      stats=ns;
+    }
+    setSyncStatus('ok','Synced');renderSidebar();
+    showToast('Completed '+count+' tasks! +'+totalXPGained+' XP earned!','milestone');
+    fireConfetti();
+  }catch(e){setSyncStatus('err','Sync failed');}
 }
 
 // ─── File attach with GitHub upload ───────────────────────────────────────
@@ -627,7 +764,7 @@ async function importRawData(raw){
     }
   }
   if(raw.stats){
-    await dbPatch('stats',{streak:raw.stats.streak||0,last_active:raw.stats.last_active||null,attendance:raw.stats.attendance||[],claimed:raw.stats.claimed||[],bonus_xp:raw.stats.bonus_xp||0},'?id=eq.1');
+    await dbPatch('stats',{streak:raw.stats.streak||0,last_active:raw.stats.last_active||null,attendance:raw.stats.attendance||[],claimed:raw.stats.claimed||[],bonus_xp:raw.stats.bonus_xp||0,gold:raw.stats.gold||0,ach_claimed:raw.stats.ach_claimed||[]},'?id=eq.1');
   }
 }
 
@@ -823,6 +960,122 @@ function fireConfetti(){
 // ─── Difficulty Filter ─────────────────────────────────────────────────
 function setDiffFilter(d){diffFilter=d;renderContent();}
 
+// ─── Achievement System ──────────────────────────────────────────────
+function getAchProgress(id){
+  const td=toDay();
+  const allDone=[];
+  goals.forEach(g=>g.sub.forEach(s=>s.tasks.forEach(t=>{if(t.done)allDone.push(t);})));
+  const totalDone=allDone.length;
+  const todayDone=allDone.filter(t=>t.done_date===td).length;
+  const goalsWithDone=new Set();
+  goals.forEach(g=>{if(g.sub.some(s=>s.tasks.some(t=>t.done)))goalsWithDone.add(g.id);});
+  const completedSubs=goals.reduce((a,g)=>a+g.sub.filter(s=>s.tasks.length>0&&s.tasks.every(t=>t.done)).length,0);
+  const completedGoals=goals.filter(g=>g.sub.length>0&&g.sub.every(s=>s.tasks.length>0&&s.tasks.every(t=>t.done))).length;
+  const tasksWithFiles=goals.reduce((a,g)=>a+g.sub.reduce((b,s)=>b+s.tasks.filter(t=>t.file_name).length,0),0);
+  const hardDoneToday=allDone.filter(t=>t.diff==='h'&&t.done_date===td).length;
+  const deadlineCrushes=allDone.filter(t=>t.due_date&&t.done_date&&t.done_date<=t.due_date).length;
+  const xp=totalXP();const lv=lvInfo(xp);
+  switch(id){
+    case 0:return totalDone;
+    case 1:return totalDone;
+    case 2:return tasksWithFiles;
+    case 3:return stats.streak||0;
+    case 4:return goals.length;
+    case 5:return goalsWithDone.size;
+    case 6:return totalDone;
+    case 7:return stats.streak||0;
+    case 8:return todayDone;
+    case 9:return deadlineCrushes;
+    case 10:return completedSubs;
+    case 11:return goalsWithDone.size;
+    case 12:return totalDone;
+    case 13:return stats.streak||0;
+    case 14:return completedGoals;
+    case 15:return todayDone;
+    case 16:return hardDoneToday;
+    case 17:return lv.lv;
+    default:return 0;
+  }
+}
+
+function openAchievements(){
+  document.getElementById('ach-overlay').classList.add('open');
+  renderAchievements();
+}
+function closeAchievements(){
+  document.getElementById('ach-overlay').classList.remove('open');
+}
+
+async function claimAchievement(id){
+  const ach=ACHIEVEMENTS[id];
+  const claimed=stats.ach_claimed||[];
+  if(claimed.includes(id))return;
+  const progress=getAchProgress(id);
+  if(progress<ach.target)return;
+  claimed.push(id);
+  const newGold=(stats.gold||0)+ach.gold;
+  const newBonusXP=(stats.bonus_xp||0)+ach.xp;
+  stats.ach_claimed=claimed;stats.gold=newGold;stats.bonus_xp=newBonusXP;
+  try{
+    await dbPatch('stats',{ach_claimed:claimed,gold:newGold,bonus_xp:newBonusXP},'?id=eq.1');
+    setSyncStatus('ok','Synced');
+  }catch(e){setSyncStatus('err','DB may need gold/ach_claimed columns');}
+  const badgeTxt=ach.badge?' · Badge: '+ach.badge:'';
+  showToast('🏆 '+ach.name+' claimed! +'+ach.xp+' XP, +'+ach.gold+' Gold'+badgeTxt,'milestone');
+  fireConfetti();playDing();
+  renderAchievements();renderSidebar();
+}
+
+function renderAchievements(){
+  const body=document.getElementById('ach-body');
+  const claimed=stats.ach_claimed||[];
+  document.getElementById('ach-gold-val').textContent=stats.gold||0;
+  const earnedBadges=ACHIEVEMENTS.filter(a=>claimed.includes(a.id)&&a.badge);
+  const allBadges=ACHIEVEMENTS.filter(a=>a.badge);
+  const xp=totalXP();const lv=lvInfo(xp);
+  let h=`<div class="ach-profile">
+    <div class="ach-profile-avatar">Lv${lv.lv}</div>
+    <div class="ach-profile-info">
+      <div class="ach-profile-name">SUBHENDU</div>
+      <div class="ach-profile-sub">${lv.title} · ${earnedBadges.length}/${allBadges.length} Badges Earned</div>
+      <div class="ach-badges">${allBadges.map(a=>{
+        const isEarned=claimed.includes(a.id);
+        return `<div class="ach-badge-icon ${isEarned?'earned':'locked'}" title="${a.name}${isEarned?' (Earned)':''}">${a.badge}</div>`;
+      }).join('')}</div>
+    </div></div>`;
+  const tiers=[{key:'easy',label:'Easy',stars:1},{key:'medium',label:'Medium',stars:2},{key:'hard',label:'Hard',stars:3}];
+  tiers.forEach(tier=>{
+    const achs=ACHIEVEMENTS.filter(a=>a.tier===tier.key);
+    h+=`<div class="ach-tier-title"><div class="ach-stars">${Array(tier.stars).fill('<span style="color:#f5c842">⭐</span>').join('')}</div> ${tier.label}</div>`;
+    achs.forEach(a=>{
+      const progress=getAchProgress(a.id);
+      const isClaimed=claimed.includes(a.id);
+      const isComplete=progress>=a.target;
+      const pct=Math.min(100,Math.round(progress/a.target*100));
+      const fillColor=isComplete?'#1D9E75':'#7F77DD';
+      let btnClass,btnText;
+      if(isClaimed){btnClass='done';btnText='Claimed';}
+      else if(isComplete){btnClass='ready';btnText='Claim';}
+      else{btnClass='locked';btnText=progress+'/'+a.target;}
+      h+=`<div class="ach-item${isComplete?' completed':''}${isClaimed?' claimed':''}">
+        <div class="ach-icon">${a.icon}</div>
+        <div class="ach-info">
+          <div class="ach-name">${a.name}</div>
+          <div class="ach-desc">${a.desc}</div>
+          <div class="ach-prog-bar"><div class="ach-prog-fill" style="width:${pct}%;background:${fillColor}"></div></div>
+        </div>
+        <div class="ach-rewards">
+          <span class="ach-rwd xp">+${a.xp} XP</span>
+          <span class="ach-rwd gold-rwd"><span style="color:#f5c842">●</span> ${a.gold}</span>
+          ${a.badge?`<span class="ach-rwd badge-rwd">${a.badge}</span>`:''}
+        </div>
+        <button class="ach-claim ${btnClass}" onclick="${isComplete&&!isClaimed?`claimAchievement(${a.id})`:''}">${btnText}</button>
+      </div>`;
+    });
+  });
+  body.innerHTML=h;
+}
+
 // ─── Level-up detection ──────────────────────────────────────────────────
 function showLevelUp(lv,title){
   document.getElementById('levelup-text').textContent='Lv'+lv+' — '+title;
@@ -870,14 +1123,15 @@ function renderSidebar(){
     (hardestGoal?`<div class="stat-row"><span class="stat-lbl">Hardest goal</span><span class="stat-goal-name" title="${esc(hardestGoal)}">${esc(hardestGoal)}</span></div>`:'');
 }
 
-// ─── Render Breadcrumb ─────────────────────────────────────────────────────
+// ─── Render Breadcrumb (static label + back button) ──────────────────────
 function renderBreadcrumb(){
-  const cg=goals.find(g=>g.id===view.goalId)||null;
-  const cs=cg?.sub.find(s=>s.id===view.subId)||null;
-  let h=`<span class="${cg?'crumb':'crumb-cur'}" onclick="${cg?'navHome()':''}">Goals</span>`;
-  if(cg)h+=`<span class="crumb-sep">›</span><span class="${cs?'crumb':'crumb-cur'}" onclick="${cs?`navGoal('${cg.id}')`:''}">${esc(cg.name)}</span>`;
-  if(cs)h+=`<span class="crumb-sep">›</span><span class="crumb-cur">${esc(cs.name)}</span>`;
-  document.getElementById('breadcrumb').innerHTML=h;
+  const bb=document.getElementById('back-btn');
+  if(view.subId||view.goalId){bb.style.display='flex';}
+  else{bb.style.display='none';}
+}
+function goBack(){
+  if(view.subId)navGoal(view.goalId);
+  else if(view.goalId)navHome();
 }
 
 // ─── Render Content ────────────────────────────────────────────────────────
@@ -889,7 +1143,8 @@ function renderContent(){
   if(cg&&cs){
     const done=cs.tasks.filter(t=>t.done).length;
     let h=`<div class="section-row"><div><div class="section-title">${esc(cs.name)}</div><div class="section-sub">${done}/${cs.tasks.length} tasks complete</div></div>
-    <button class="action-btn" style="background:#7F77DD" onclick="playClick();openModal('task','${cg.id}','${cs.id}')">+ Add Task</button></div>`;
+    <button class="action-btn" style="background:#7F77DD" onclick="playClick();openModal('task','${cg.id}','${cs.id}')">+ Add Task</button>
+    ${cs.tasks.some(t=>!t.done)?`<button class="batch-btn" onclick="playClick();batchComplete('${cg.id}','${cs.id}')">✓ Complete All</button>`:''}</div>`;
     if(!cs.tasks.length)h+=`<div class="empty">No tasks yet — click Add Task above</div>`;
     if(cs.tasks.length>0)h+=`<div class="diff-filter"><button class="diff-filter-btn${diffFilter==='all'?' active':''}" onclick="playTuck();setDiffFilter('all')">All</button><button class="diff-filter-btn${diffFilter==='e'?' active':''}" onclick="playTuck();setDiffFilter('e')">Easy</button><button class="diff-filter-btn${diffFilter==='m'?' active':''}" onclick="playTuck();setDiffFilter('m')">Medium</button><button class="diff-filter-btn${diffFilter==='h'?' active':''}" onclick="playTuck();setDiffFilter('h')">Hard</button></div>`;
     const filteredTasks = cs.tasks.filter(t=>matchSearch(t.text)&&(diffFilter==='all'||t.diff===diffFilter));
@@ -898,13 +1153,18 @@ function renderContent(){
     filteredTasks.forEach(t=>{
       const dc=t.diff==='e'?'diff-e':t.diff==='h'?'diff-h':'diff-m';
       const dl=t.diff==='e'?'Easy':t.diff==='h'?'Hard':'Medium';
+      const canDrag=diffFilter==='all'&&!searchQuery;
       const fileHtml = t.file_url
         ? `<a class="file-link" href="${t.file_url}" target="_blank" title="${esc(t.file_name)}">📎 ${esc(t.file_name)}</a>`
         : (t.file_name ? `<span class="file-link" title="${esc(t.file_name)}">📎 ${esc(t.file_name)}</span>` : '');
-      h+=`<div class="task-row${t.done?' done':''}">
+      let dueHtml='';
+      if(t.due_date){const td2=toDay();const isOverdue=!t.done&&t.due_date<td2;const isToday=t.due_date===td2;dueHtml=`<span class="due-badge ${isOverdue?'overdue':isToday?'today-due':'upcoming'}">${isOverdue?'⏰ Overdue':isToday?'📅 Due today':'📅 '+t.due_date}</span>`;}
+      h+=`<div class="task-row${t.done?' done':''}" draggable="${canDrag}" data-drag-type="task" data-drag-id="${t.id}" data-drag-sid="${cs.id}" data-drag-gid="${cg.id}">
+        <span class="drag-handle" title="Drag to reorder">⠿</span>
         <div class="task-check${t.done?' checked':''}" onclick="toggleTask('${cg.id}','${cs.id}','${t.id}')"></div>
         <span class="task-text">${esc(t.text)}</span>
         <div class="task-right">
+          ${dueHtml}
           ${fileHtml}
           <span class="diff-badge ${dc}">${dl} +${XPV[t.diff]}</span>
           <button class="attach-btn${t.file_name?' has-file':''}" onclick="event.stopPropagation();playAttach();triggerAttach('${cg.id}','${cs.id}','${t.id}')">📎 ${t.file_name?'Update':'Attach'}</button>
@@ -927,7 +1187,8 @@ function renderContent(){
     if(searchQuery && filteredSubs.length===0)h+=`<div class="empty">No sub-goals match "${esc(searchQuery)}"</div>`;
     filteredSubs.forEach(s=>{
       const sd=s.tasks.filter(t=>t.done).length,comp=s.tasks.length>0&&sd===s.tasks.length;
-      h+=`<div class="sg-card${comp?' complete':''}" onclick="playNavClick();navSub('${cg.id}','${s.id}')">
+      h+=`<div class="sg-card${comp?' complete':''}" onclick="playNavClick();navSub('${cg.id}','${s.id}')" draggable="true" data-drag-type="sub" data-drag-id="${s.id}" data-drag-gid="${cg.id}">
+        <span class="drag-handle" title="Drag to reorder" onclick="event.stopPropagation()">⠿</span>
         <span style="font-size:16px">${comp?'✓':'📂'}</span>
         <span class="sg-name">${esc(s.name)}</span>
         ${comp?'<span class="badge-complete">Complete</span>':''}
@@ -949,7 +1210,8 @@ function renderContent(){
     const gd=g.sub.reduce((a,s)=>a+s.tasks.filter(t=>t.done).length,0);
     const gt=g.sub.reduce((a,s)=>a+s.tasks.length,0);
     const comp=gt>0&&gd===gt,pct=gt?Math.round(gd/gt*100):0;
-    h+=`<div class="goal-card" onclick="playNavClick();navGoal('${g.id}')">
+    h+=`<div class="goal-card" onclick="playNavClick();navGoal('${g.id}')" draggable="true" data-drag-type="goal" data-drag-id="${g.id}">
+      <span class="drag-handle" title="Drag to reorder" onclick="event.stopPropagation()">⠿</span>
       <span style="font-size:18px">📁</span>
       <div class="gc-bar-wrap"><div class="gc-name">${esc(g.name)}</div>
       <div class="gc-prog"><div class="gc-prog-fill" style="width:${pct}%;background:${g.color}"></div></div></div>
@@ -960,6 +1222,98 @@ function renderContent(){
   });
   h+=`<div class="add-row" onclick="playClick();openModal('goal')">+ Add new goal</div>`;
   c.innerHTML=h;
+}
+
+// ─── Drag & Drop Reorder ──────────────────────────────────────────────────
+let _dragData=null,_dropIndicator=null,_dragBlocked=false;
+function _getOrCreateIndicator(){
+  if(!_dropIndicator){_dropIndicator=document.createElement('div');_dropIndicator.className='drop-indicator';}
+  return _dropIndicator;
+}
+function _removeIndicator(){if(_dropIndicator&&_dropIndicator.parentNode)_dropIndicator.remove();}
+
+document.addEventListener('dragstart',e=>{
+  if(_dragBlocked){e.preventDefault();_dragBlocked=false;return;}
+  const card=e.target.closest('[data-drag-type]');
+  if(!card)return;
+  // Don't drag from buttons/inputs/checkboxes
+  if(e.target.closest('.task-check,.attach-btn,.edit-btn,.file-link,.diff-badge,.due-badge,.action-btn,.batch-btn')){e.preventDefault();return;}
+  _dragData={type:card.dataset.dragType,id:card.dataset.dragId,gid:card.dataset.dragGid,sid:card.dataset.dragSid};
+  card.classList.add('dragging');
+  e.dataTransfer.effectAllowed='move';
+  e.dataTransfer.setData('text/plain','');
+});
+document.addEventListener('dragend',e=>{
+  const card=e.target.closest('[data-drag-type]');
+  if(card)card.classList.remove('dragging');
+  _removeIndicator();_dragData=null;
+});
+document.addEventListener('dragover',e=>{
+  if(!_dragData)return;
+  e.preventDefault();e.dataTransfer.dropEffect='move';
+  const card=e.target.closest('[data-drag-type]');
+  if(!card||card.classList.contains('dragging')){_removeIndicator();return;}
+  if(card.dataset.dragType!==_dragData.type){_removeIndicator();return;}
+  const rect=card.getBoundingClientRect();
+  const mid=rect.top+rect.height/2;
+  const ind=_getOrCreateIndicator();
+  if(e.clientY<mid){card.parentNode.insertBefore(ind,card);}
+  else{card.parentNode.insertBefore(ind,card.nextSibling);}
+});
+document.addEventListener('drop',e=>{
+  if(!_dragData)return;e.preventDefault();
+  const ind=_dropIndicator;
+  if(!ind||!ind.parentNode){_dragData=null;return;}
+  const{type,id,gid,sid}=_dragData;
+  const afterId=_getNextId(ind);
+  // Reorder in local state
+  if(type==='goal'){
+    const arr=goals;const idx=arr.findIndex(x=>x.id===id);if(idx<0)return;
+    const[item]=arr.splice(idx,1);
+    const insertIdx=afterId?arr.findIndex(x=>x.id===afterId):arr.length;
+    arr.splice(insertIdx<0?arr.length:insertIdx,0,item);
+    arr.forEach((g,i)=>g.position=i);
+  }else if(type==='sub'){
+    const goal=goals.find(g=>g.id===gid);if(!goal)return;
+    const arr=goal.sub;const idx=arr.findIndex(x=>x.id===id);if(idx<0)return;
+    const[item]=arr.splice(idx,1);
+    const insertIdx=afterId?arr.findIndex(x=>x.id===afterId):arr.length;
+    arr.splice(insertIdx<0?arr.length:insertIdx,0,item);
+    arr.forEach((s,i)=>s.position=i);
+  }else if(type==='task'){
+    const goal=goals.find(g=>g.id===gid);if(!goal)return;
+    const sub=goal.sub.find(s=>s.id===sid);if(!sub)return;
+    const arr=sub.tasks;const idx=arr.findIndex(x=>x.id===id);if(idx<0)return;
+    const[item]=arr.splice(idx,1);
+    const insertIdx=afterId?arr.findIndex(x=>x.id===afterId):arr.length;
+    arr.splice(insertIdx<0?arr.length:insertIdx,0,item);
+    arr.forEach((t,i)=>t.position=i);
+  }
+  _removeIndicator();_dragData=null;
+  renderContent();
+  // Save new positions to DB
+  savePositions(type,gid,sid);
+});
+function _getNextId(indicator){
+  const next=indicator.nextElementSibling;
+  if(next&&next.dataset&&next.dataset.dragId)return next.dataset.dragId;
+  return null;
+}
+async function savePositions(type,gid,sid){
+  try{
+    setSyncStatus('syncing','Saving order...');
+    if(type==='goal'){
+      for(const g of goals)await dbPatch('goals',{position:g.position},`?id=eq.${g.id}`);
+    }else if(type==='sub'){
+      const goal=goals.find(g=>g.id===gid);
+      if(goal)for(const s of goal.sub)await dbPatch('subgoals',{position:s.position},`?id=eq.${s.id}`);
+    }else if(type==='task'){
+      const goal=goals.find(g=>g.id===gid);
+      const sub=goal?.sub.find(s=>s.id===sid);
+      if(sub)for(const t of sub.tasks)await dbPatch('tasks',{position:t.position},`?id=eq.${t.id}`);
+    }
+    setSyncStatus('ok','Synced');
+  }catch(e){setSyncStatus('err','Reorder sync failed');}
 }
 
 function render(){renderSidebar();renderBreadcrumb();renderContent();}
@@ -1071,11 +1425,14 @@ document.addEventListener('keydown',e=>{
   if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return;
   if(e.key==='Escape'){
     const m=document.getElementById('modal-overlay');
+    const a=document.getElementById('ach-overlay');
     if(m.classList.contains('open'))closeModal();
+    else if(a.classList.contains('open'))closeAchievements();
     else if(view.subId)navGoal(view.goalId);
     else if(view.goalId)navHome();
   }
   if(e.key==='/'){e.preventDefault();document.getElementById('search-input').focus();}
+  if(e.key==='a'||e.key==='A'){const a=document.getElementById('ach-overlay');if(!a.classList.contains('open'))openAchievements();}
   if(e.key==='n'||e.key==='N'){
     const m=document.getElementById('modal-overlay');
     if(m.classList.contains('open'))return;
