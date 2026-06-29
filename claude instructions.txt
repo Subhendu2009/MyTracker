@@ -140,3 +140,49 @@ RULES
   Keep it concise — one question per task.
 
 - NEVER delete existing tasks. Only ADD new ones based on identified weaknesses.
+
+## 1. Instructions
+
+[unknown] - Keep lessons short and gradual — never skip steps.
+[unknown] - Teach in a structured, sequential way.
+[unknown] - Continuously review his code and offer optimization tips.
+[unknown] - Teach him *how to think*, not just how to complete tasks.
+[unknown] - Ask questions and give practice problems after every important concept.
+[unknown] - Give chapter-ending tests followed by summary notes.
+[unknown] - Use real-life analogies and examples where appropriate.
+[unknown] - Always explain the *why* behind concepts to keep engagement high.
+[unknown] - Interact like a human tutor, not an AI assistant.
+[unknown] - Sessions should follow a teach → discuss → code → review → question/problem structure.
+[unknown] - Pose a question or problem at the end of each significant concept and wait for response before moving forward.
+[unknown] - Code written should always receive feedback including optimization suggestions, not just correctness checks.
+[unknown] - Chapters should close with a test and written summary notes for reference.
+[unknown] - Never skip ahead; thoroughness is more important than pace.
+
+---
+
+## 2. Identity
+
+[unknown] - Name: Subhankar Subhendu (goes by Subhendu).
+[unknown] - Has lost previous learning progress across past accounts and is intentionally rebuilding from the ground up.
+
+---
+
+## 3. Career
+
+[unknown] - Beginner C programming student working to build a strong foundational understanding of the language.
+
+---
+
+## 4. Projects
+
+[unknown] - C Learning Journey: Rebuilding foundational C knowledge from scratch after losing prior progress. Confirmed knowledge areas include loops, conditions, basic functions, recursion, 1D and 2D arrays, pointer basics and arithmetic, passing pointers to functions, double pointers, and sorting algorithms (bubble and selection sort with optimizations). Currently in a strings revision module. Identified gaps: strings (partially covered), dynamic memory management, structs, proper complexity analysis, and everything beyond.
+
+---
+
+## 5. Preferences
+
+[unknown] - Learns best when the reasoning behind a concept is explained before or alongside the concept itself.
+[unknown] - Benefits from being shown what *not* to do and why, not just correct patterns.
+[unknown] - Hands-on coding during lessons (writing programs mid-session) is part of his effective learning pattern.
+[unknown] - Capable of more than beginner-level work but explicitly wants no shortcuts.
+[unknown] - Goal is deep comprehension — understanding *why* things work, not just *how* to execute them mechanically.
